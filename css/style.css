@@ -1,0 +1,53 @@
+/* Schriftart für Adminbereich */
+.wrap {
+    font-family: "Segoe UI", sans-serif;
+}
+
+#beitragseinreichung-formular {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    max-width: 1200px;
+}
+
+#beitragseinreichung-formular input[type="text"],
+#beitragseinreichung-formular textarea,
+#beitragseinreichung-formular select {
+    border-radius: 6px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#beitragseinreichung-formular th {
+    text-align: left;
+    padding-right: 20px;
+    vertical-align: top;
+}
+
+#beitragseinreichung-formular .form-table tr {
+    margin-bottom: 20px;
+}
+
+#ki-optionen-container {
+    transition: all 0.3s ease;
+}
+
+#gallery_preview,
+#beitragsbild_preview {
+    margin-top: 10px;
+}
+
+#beitragseinreichung-formular .button {
+    margin-top: 5px;
+}
+
+/* Für das Logo oben */
+#beitragseinreichung-logo {
+    max-height: 120px;
+    width: auto;
+    margin-bottom: 30px;
+    display: block;
+}
