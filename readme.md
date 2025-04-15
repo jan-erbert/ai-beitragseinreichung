@@ -69,6 +69,14 @@ Es lassen sich folgende Rechte vergeben:
 4. Benutzerrechte zuweisen.
 5. Stilgruppen & Standardkategorie definieren.
 
+🔐 Hinweis zum API-Key
+Der OpenAI API-Key kann entweder direkt im Plugin-Backend hinterlegt oder alternativ sicher in der wp-config.php definiert werden.
+Dazu füge folgende Zeile hinzu:
+
+  define('OPENAI_API_KEY', 'dein-api-schlüssel-hier');
+
+👉 Wenn diese Konstante gesetzt ist, wird der API-Key im Backend nicht angezeigt oder verändert und das Plugin verwendet ausschließlich den hinterlegten Wert aus der Konfigurationsdatei.
+
 ---
 
 ## ✅ Voraussetzungen
