@@ -16,7 +16,8 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
   - Titel & Inhalt
   - Kategorie & Schlagwörter
   - Beitragsbild & Galerie
-  - KI-Optimierung (optional) einreichen.
+  - KI-Optimierung (optional)
+    einreichen.
 
 - 🤖 **OpenAI GPT-4 Integration (optional)**  
   Inhalte können automatisch stilistisch optimiert werden:
@@ -24,7 +25,7 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
   - Freier Hinweistext für die KI
   - Unterstützung für **Markdown**, Absätze, Listen, Hervorhebungen etc.
   - Speicherung als saubere Gutenberg-Blöcke
-  - Klassischer Editor (folgt!)
+  - Klassischer WP Editor (folgt!)
 
 🛠️ **Eigene Rollen & Berechtigungen**  
 Es lassen sich folgende Rechte vergeben:
@@ -83,6 +84,7 @@ Dazu füge folgende Zeile hinzu:
 
 - WordPress 5.8 oder höher
 - PHP 7.4 oder höher
+- Nutzung von Gutenberg Editor für Beiträge (Standard WP Editor folgt)
 - Optional: OpenAI API-Key für GPT-Integration
 
 ---
@@ -92,7 +94,7 @@ Dazu füge folgende Zeile hinzu:
 **Eingabe im Formular:**
 
 ```text
-🏃‍♂️ Erfolgreich beim Lauf!
+🏃‍♂️ Erfolgreicher Lauf in Berlin!
 
-**Name 1** – 12:00 min  
-**Name 2** – 14:30 min
+**Max Mustermann** – 12:00 min  
+**Miximilia Musterfrau** – 14:30 min
