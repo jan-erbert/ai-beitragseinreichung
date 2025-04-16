@@ -77,6 +77,15 @@ Es lassen sich folgende Rechte vergeben:
 
 ---
 
+## ✅ Voraussetzungen
+
+- WordPress 5.8 oder höher
+- PHP 7.4 oder höher
+- Nutzung von Gutenberg Editor für Beiträge (Standard WP Editor folgt)
+- Optional: OpenAI API-Key für GPT-Integration
+
+---
+
 ## 🚀 Installation
 
 1. Plugin-Ordner `ai-beitragseinreichung` in `/wp-content/plugins/` kopieren.
@@ -85,37 +94,19 @@ Es lassen sich folgende Rechte vergeben:
 4. Benutzerrechte zuweisen.
 5. Stilgruppen & Standardkategorie definieren.
 
-🔐 Hinweis zum API-Key
-Der OpenAI API-Key kann entweder direkt im Plugin-Backend hinterlegt oder alternativ sicher in der wp-config.php definiert werden.
-Dazu füge folgende Zeile hinzu:
-
-  define('OPENAI_API_KEY', 'dein-api-schlüssel-hier');
-
-👉 Wenn diese Konstante gesetzt ist, wird der API-Key im Backend nicht angezeigt oder verändert und das Plugin verwendet ausschließlich den hinterlegten Wert aus der Konfigurationsdatei.
 
 ---
 
-## 🧠 OpenAI API-Key
+## 🔐 Hinweis zum API-Key
 
-Damit die KI-Textverbesserung funktioniert, wird ein API-Key von OpenAI benötigt.
-
-**Zwei Möglichkeiten zur Hinterlegung:**
-
-- **Empfohlen:** Im WordPress-Backend unter _Beitragseinreichung > Einstellungen_ eingeben
-- **Alternativ:** Direkt in der `wp-config.php` definieren:
+Der OpenAI API-Key kann entweder direkt im Plugin-Backend hinterlegt oder alternativ sicher in der wp-config.php definiert werden.
+Dazu füge folgende Zeile hinzu:
 
 ```php
 define('OPENAI_API_KEY', 'dein-api-key-hier');
 ```
 
----
-
-## ✅ Voraussetzungen
-
-- WordPress 5.8 oder höher
-- PHP 7.4 oder höher
-- Nutzung von Gutenberg Editor für Beiträge (Standard WP Editor folgt)
-- Optional: OpenAI API-Key für GPT-Integration
+👉 Wenn diese Konstante gesetzt ist, wird der API-Key im Backend nicht angezeigt oder verändert und das Plugin verwendet ausschließlich den hinterlegten Wert aus der Konfigurationsdatei.
 
 ---
 
