@@ -9,6 +9,18 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
 
 ---
 
+## ✨ Übersicht Funktionen
+
+- 📝 Beiträge einreichen im Adminbereich (inkl. Beitragsbild, Galerie, Tags & Kategorie)
+- 🧠 Optional: Automatische Textverbesserung mit GPT-4 (via OpenAI API)
+- 🔧 Stilvorgaben und Hinweise für die KI definierbar
+- 💬 Eigene Protokollierung aller KI-Optimierungen
+- 📬 E-Mail-Benachrichtigung an definierbare Admins + optional an den Autor
+- 🔐 Custom Post Status: „in Verarbeitung“ bis zur Freigabe
+- 📚 Gutenberg-kompatible Blockausgabe mit Markdown-zu-HTML-Konvertierung
+
+---
+
 ## 🔧 Features
 
 - 📝 **Backend-Formular zur Beitragseinreichung**  
@@ -18,6 +30,9 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
   - Beitragsbild & Galerie
   - KI-Optimierung (optional)
     einreichen.
+
+- 📦 **Custom Post Status: in_verarbeitung**
+  Alle eingereichten Beiträge erhalten zunächst den Status in_verarbeitung. So können Admins sie prüfen, bevor sie veröffentlicht werden.
 
 - 🤖 **OpenAI GPT-4 Integration (optional)**  
   Inhalte können automatisch stilistisch optimiert werden:
@@ -80,6 +95,21 @@ Dazu füge folgende Zeile hinzu:
 
 ---
 
+## 🧠 OpenAI API-Key
+
+Damit die KI-Textverbesserung funktioniert, wird ein API-Key von OpenAI benötigt.
+
+**Zwei Möglichkeiten zur Hinterlegung:**
+
+- **Empfohlen:** Im WordPress-Backend unter _Beitragseinreichung > Einstellungen_ eingeben
+- **Alternativ:** Direkt in der `wp-config.php` definieren:
+
+```php
+define('OPENAI_API_KEY', 'dein-api-key-hier');
+```
+
+---
+
 ## ✅ Voraussetzungen
 
 - WordPress 5.8 oder höher
@@ -89,12 +119,54 @@ Dazu füge folgende Zeile hinzu:
 
 ---
 
+## 📌 Hinweise
+
+Die KI-Ausgabe ist auf stilistische Korrektur optimiert, keine Faktenprüfung!
+
+Der Gutenberg-kompatible HTML-Output unterstützt Überschriften, Absätze, Listen, Fett/Kursiv und Links.
+
+Die Nutzung der OpenAI API kann kostenpflichtig sein. Ein Soft-/Hardlimit kann im OpenAI-Dashboard definiert werden!
+
+---
+
+### 🎨 Anpassbarer Stil
+
+Die KI-Optimierung erfolgt **nicht automatisch**, sondern orientiert sich an deinen Stilvorgaben:
+
+- ✍️ **Grundstil**: Eine globale Vorgabe wie z. B. _„freundlich, sachlich, sportlich“_ – wird bei jeder Optimierung berücksichtigt.
+- 🗂️ **Stilgruppen**: Für verschiedene Beitragstypen lassen sich eigene Stile definieren, z. B. für Berichte, Einladungen oder Artikel.
+
+🔧 Diese Vorgaben steuerst du direkt in den Plugin-Einstellungen und kannst sie jederzeit bearbeiten.
+
+💡 So lassen sich auch unterschiedliche Kommunikationsstile für verschiedene Zielgruppen einfach umsetzen.
+
+---
+
 ## 📘 Beispiele
 
-**Eingabe im Formular:**
+### 🖋️ Eingabe im Formular (ohne KI-Optimierung)
 
 ```text
-🏃‍♂️ Erfolgreicher Lauf in Berlin!
+Ergebnisse vom Lauf in Mainz
 
-**Max Mustermann** – 12:00 min  
-**Miximilia Musterfrau** – 14:30 min
+Max Mustermann lief 12:00.  
+Maximilia Musterfrau 14:30.
+```
+
+### 🧱 Ausgabe im Beitrag (automatisch umgewandelt zu Gutenberg-kompatiblen Blöcken)
+
+```text
+<!-- wp:paragraph -->
+<p>🏃‍♂️ Erfolgreicher Stadtlauf in Mainz!</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><strong>Max Mustermann</strong> – 12:00 min<br>
+<strong>Maximilia Musterfrau</strong> – 14:30 min</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Herzlichen Glückwunsch an alle Teilnehmenden für ihre großartigen Leistungen! 🎉</p>
+<!-- /wp:paragraph -->
+```
+
