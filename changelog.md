@@ -2,26 +2,26 @@
 
 ## Version 1.1.0 – 2025-04-25
 **Added:**
--Unterstützung für Textauszug (Vorschautext):
--Manuell eingeben oder automatisch durch KI generieren lassen
--Neue Einstellung in den Optionen zum Aktivieren/Deaktivieren der Textauszugsfunktion
--Textauszug wird nun im KI-Protokoll gespeichert und angezeigt
--Neue Option „Textauszug automatisch generieren“ im Formular (visuell integriert in den KI-Bereich)
--Visuell überarbeiteter graublauer KI-Bereich im Einreichungsformular
--Dropdown in den Einstellungen zur Steuerung der Textauszugs-Funktion
--Automatische Ausblendung des Textauszug-Feldes bei aktiver KI und Checkbox
--Neue Styles und JavaScript-Logik zur dynamischen Steuerung von Textauszug und KI-Feldern
+- Unterstützung für Textauszug (Vorschautext):
+- Manuell eingeben oder automatisch durch KI generieren lassen
+- Neue Einstellung in den Optionen zum Aktivieren/Deaktivieren der Textauszugsfunktion
+- Textauszug wird nun im KI-Protokoll gespeichert und angezeigt
+- Neue Option „Textauszug automatisch generieren“ im Formular (visuell integriert in den KI-Bereich)
+- Visuell überarbeiteter graublauer KI-Bereich im Einreichungsformular
+- Dropdown in den Einstellungen zur Steuerung der Textauszugs-Funktion
+- Automatische Ausblendung des Textauszug-Feldes bei aktiver KI und Checkbox
+- Neue Styles und JavaScript-Logik zur dynamischen Steuerung von Textauszug und KI-Feldern
 
 **Improved:**
--Konsistente visuelle Darstellung der KI-Einstellungen
--KI-Optimierungslogik überarbeitet, um auch den Textauszug zu erzeugen
--Einstellungen klarer gruppiert: Kategorie, Empfänger, Textauszug, KI, Stilgruppen
--JS-Validierung bei Formular-Absenden verbessert
+- Konsistente visuelle Darstellung der KI-Einstellungen
+- KI-Optimierungslogik überarbeitet, um auch den Textauszug zu erzeugen
+- Einstellungen klarer gruppiert: Kategorie, Empfänger, Textauszug, KI, Stilgruppen
+- JS-Validierung bei Formular-Absenden verbessert
 
 **Fixed:**
--Kleinere UI-Inkonsistenzen im Formular bei aktivierter KI
--Doppelte Anzeige der Checkbox für automatischen Textauszug entfernt
--excerpt-Feld wird nun korrekt im Beitrag gespeichert und verarbeitet
+- Kleinere UI-Inkonsistenzen im Formular bei aktivierter KI
+- Doppelte Anzeige der Checkbox für automatischen Textauszug entfernt
+- excerpt-Feld wird nun korrekt im Beitrag gespeichert und verarbeitet
 
 ## Version 1.0.0 – 2025-04-14
 **Added:**
