@@ -35,6 +35,16 @@
     transition: all 0.3s ease;
 }
 
+.ki-bereich {
+    background-color: #f3f7fb;
+    border: 1px solid #ccd9e6;
+    padding: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+  }
+
+
 #gallery_preview,
 #beitragsbild_preview {
     margin-top: 10px;
@@ -51,3 +61,47 @@
     margin-bottom: 30px;
     display: block;
 }
+
+#submit-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.85);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .submit-loader-inner {
+    text-align: center;
+  }
+  
+  .submit-loader-bar {
+    width: 300px;
+    height: 6px;
+    background: #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  
+  .submit-loader-bar::before {
+    content: "";
+    position: absolute;
+    height: 100%;
+    width: 50%;
+    background: linear-gradient(90deg, #007cba, #00c0ff);
+    animation: loaderAnim 1s infinite ease-in-out;
+    border-radius: 4px;
+  }
+  
+  @keyframes loaderAnim {
+    0% { left: -50%; }
+    50% { left: 25%; }
+    100% { left: 100%; }
+  }
+  

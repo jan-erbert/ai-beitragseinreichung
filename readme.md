@@ -1,8 +1,8 @@
 # 🧠 AI Beitragseinreichung
 
-> Version: 1.0
+> Version: 1.1
 > Autor: Jan Erbert  
-> Letztes Update: 2025-04-14  
+> Letztes Update: 2025-04-25  
 > Lizenz: GPL2+
 
 Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, im Backend Beiträge mit Schlagwörtern, Kategorien, Bildern und optionaler KI-Unterstützung einzureichen. Die Inhalte werden mit einem benutzerdefinierten Status gespeichert und können anschließend durch Admins oder Redakteure geprüft werden.
@@ -18,6 +18,7 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
 - 📬 E-Mail-Benachrichtigung an definierbare Admins + optional an den Autor
 - 🔐 Custom Post Status: „in Verarbeitung“ bis zur Freigabe
 - 📚 Gutenberg-kompatible Blockausgabe mit Markdown-zu-HTML-Konvertierung
+- 🧾 Optionaler Textauszug (manuell oder per KI generierbar)
 
 ---
 
@@ -29,6 +30,7 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
   - Kategorie & Schlagwörter
   - Beitragsbild & Galerie
   - KI-Optimierung (optional)
+  - Textauszug: manuell oder automatisch durch KI generiert
     einreichen.
 
 - 📦 **Custom Post Status: in_verarbeitung**
@@ -69,6 +71,12 @@ Es lassen sich folgende Rechte vergeben:
   - Vorher/Nachher-Vergleich von Titel & Inhalt
   - Zeitstempel, Autor & Modell
   - Admins können Einträge löschen
+
+- 🧾 **Textauszug (optional)**  
+  - Der Beitrag kann einen Kurztext (Excerpt) enthalten  
+  - Wahlweise manuell oder automatisch durch die KI generiert  
+  - Ein-/Ausblendbar über die Plugin-Einstellungen  
+  - Wird im Beitrag gespeichert und im KI-Protokoll dokumentiert
 
 - 📶 **OpenAI API-Statusanzeige**  
   - Verbindungstest beim Speichern der Einstellungen
@@ -120,6 +128,23 @@ Die Nutzung der OpenAI API kann kostenpflichtig sein. Ein Soft-/Hardlimit kann i
 
 ---
 
+ℹ️ Datenschutz-Hinweis
+Dieses Plugin bietet die Option, Inhalte automatisch durch künstliche Intelligenz (OpenAI, z. B. GPT-4) stilistisch verbessern zu lassen. Dabei werden vom Nutzer eingegebene Texte (Titel und Inhalt) an die OpenAI API (USA) übermittelt.
+
+Ob und wie diese Funktion genutzt wird, entscheidet der Beitragseinreicher individuell. Es erfolgt keine automatische Übertragung ohne Zustimmung.
+
+Bitte beachte:
+
+Die Nutzung der KI-Funktion kann unter Umständen datenschutzrechtliche Relevanz haben.
+
+Eine entsprechende Ergänzung in der Datenschutzerklärung deiner Webseite kann notwendig sein.
+
+Weitere Informationen zur Datenverarbeitung durch OpenAI: [OpenAI Privacy](https://openai.com/privacy)
+
+Hinweis: Für die rechtliche Bewertung und Gestaltung deiner Datenschutzerklärung bist du als Webseitenbetreiber selbst verantwortlich.
+
+---
+
 ### 🎨 Anpassbarer Stil
 
 Die KI-Optimierung erfolgt **nicht automatisch**, sondern orientiert sich an deinen Stilvorgaben:
@@ -160,4 +185,3 @@ Maximilia Musterfrau 14:30.
 <p>Herzlichen Glückwunsch an alle Teilnehmenden für ihre großartigen Leistungen! 🎉</p>
 <!-- /wp:paragraph -->
 ```
-

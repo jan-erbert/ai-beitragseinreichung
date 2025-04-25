@@ -21,7 +21,7 @@ Siehe hierzu die vollständige Lizenz (unten) für weitere Informationen.
 
 ## ✅ Erlaubt ist u. a.:
 
-- Die **private und kommerzielle Nutzung** des Plugins.
+- Die **private Nutzung** des Plugins.
 - Das **Ändern und Anpassen** des Codes an eigene Anforderungen.
 - Die **Veröffentlichung eigener Forks oder Erweiterungen**, wenn sie ebenfalls unter der GPL lizenziert werden.
 - Die **Verbreitung** – z. B. über eigene Webseiten, per Download oder als Bestandteil anderer Systeme.
@@ -30,7 +30,7 @@ Siehe hierzu die vollständige Lizenz (unten) für weitere Informationen.
 
 ## ❗ Bedingungen (Pflichten) gemäß GPL:
 
-- Der **Quellcode muss verfügbar** sein (z. B. bei Weitergabe oder Verkauf).
+- Der **Quellcode muss verfügbar** sein (z. B. bei Weitergabe).
 - Das Plugin (inkl. Änderungen) **muss weiterhin unter GPL** lizenziert bleiben.
 - Die Lizenz- und Urheberrechts-Hinweise dürfen **nicht entfernt oder verändert** werden.
 - Eine Kopie dieser Lizenz muss mitgeliefert werden.

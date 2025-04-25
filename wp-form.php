@@ -3,7 +3,7 @@
  * Plugin Name: 🧠 AI Beitragseinreichung
  * Plugin URI: https://jan-erbert.de
  * Description: Ermöglicht es berechtigten Nutzern, im Backend Beiträge mit Bild und Schlagwörtern einzureichen. Beiträge werden mit Status "In Verarbeitung" gespeichert und können durch AI verbessert werden.
- * Version: 1.0
+ * Version: 1.1
  * Author: Jan Erbert
  * License: GPL2+
  */
@@ -141,6 +141,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
 
 // 2. Formular anzeigen
 function beitragseinreichung_formular_anzeige() {
+    $excerpt_aktiv = get_option('beitragseinreichung_excerpt_aktiv', 1);
     $ki_global_aktiv = get_option('beitragseinreichung_ki_aktiv');
     ?>
     <div class="wrap">
@@ -166,39 +167,53 @@ function beitragseinreichung_formular_anzeige() {
                     <th><label for="beitrag_inhalt">Inhalt</label></th>
                     <td><textarea name="beitrag_inhalt" id="beitrag_inhalt" rows="16" class="large-text" required></textarea></td>
                 </tr>
-                <?php if ($ki_global_aktiv): ?>
-                <tr>
-                    <th scope="row"><label for="beitrag_ki_individuell">Texte automatisch verbessern</label></th>
+                <?php if ($excerpt_aktiv): ?>
+                <tr id="textauszug-zeile">
+                    <th><label for="beitrag_excerpt">Textauszug (optional)</label></th>
                     <td>
-                        <label>
-                            <input type="checkbox" name="beitrag_ki_individuell" id="beitrag_ki_individuell" value="1">
-                            Aktivieren (Empfohlen)
-                        </label>
-                        <p class="description">Wenn aktiviert, werden Titel und Inhalt dieses Beitrags stilistisch mit GPT-4 überarbeitet.</p>
+                        <textarea name="beitrag_excerpt" id="beitrag_excerpt" rows="3" class="large-text" placeholder="Kurze Lesevorschau (optional)"></textarea>
                     </td>
                 </tr>
-                <tbody id="ki-optionen-container" style="display: none;">
-                    <tr>
-                        <th scope="row"><label for="beitrag_ki_stilgruppe">Stil der Ausgabe</label></th>
-                        <td>
-                            <select name="beitrag_ki_stilgruppe" id="beitrag_ki_stilgruppe">
-                                <option value="">– Stil auswählen –</option>
-                                <?php
-                                $stilgruppen = get_option('beitragseinreichung_ki_stilgruppen', []);
-                                foreach ($stilgruppen as $gruppe) {
-                                    echo '<option value="' . esc_attr($gruppe['stil']) . '">' . esc_html($gruppe['label']) . '</option>';
-                                }
-                                ?>
-                            </select>
-                            <p class="description">Bitte wähle den passenden Stil für diesen Beitrag aus.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th><label for="beitrag_ki_hinweis">Zusätzliche Hinweise für die KI (optional)</label></th>
-                        <td>
-                            <textarea name="beitrag_ki_hinweis" id="beitrag_ki_hinweis" rows="3" class="large-text" placeholder="Optional: Stilwünsche oder besondere Hinweise für die KI."></textarea>
-                        </td>
-                    </tr>
+                <?php endif; ?>
+                <?php if ($ki_global_aktiv): ?>
+                <tr>
+                    <td colspan="2">
+                        <div class="ki-bereich">
+                            <label>
+                                <input type="checkbox" name="beitrag_ki_individuell" id="beitrag_ki_individuell" value="1">
+                                <strong>Texte automatisch verbessern</strong> (Empfohlen)
+                            </label>
+                            <p class="description">Wenn aktiviert, werden Titel und Inhalt dieses Beitrags stilistisch mit GPT-4 überarbeitet.</p>
+                            <?php if ($excerpt_aktiv): ?>
+                            <div id="ki-excerpt-option" style="margin-top: 10px; display: none;">
+                                <label>
+                                <input type="checkbox" name="beitrag_excerpt_auto" id="beitrag_excerpt_auto" value="1" checked>
+                                <strong>Textauszug automatisch generieren</strong>
+                                </label>
+                                <p class="description">Ein kurzer Vorschautext wird automatisch aus dem Inhalt erstellt.</p>
+                            </div>
+                            <?php endif; ?>
+                            <div id="ki-optionen-container" style="display: none;">
+                                <p><label for="beitrag_ki_stilgruppe">Stil der Ausgabe</label><br>
+                                <select name="beitrag_ki_stilgruppe" id="beitrag_ki_stilgruppe">
+                                    <option value="">– Stil auswählen –</option>
+                                    <?php
+                                    $stilgruppen = get_option('beitragseinreichung_ki_stilgruppen', []);
+                                    foreach ($stilgruppen as $gruppe) {
+                                        echo '<option value="' . esc_attr($gruppe['stil']) . '">' . esc_html($gruppe['label']) . '</option>';
+                                    }
+                                    ?>
+                                </select>
+                                </p>
+                                <p>
+                                <label for="beitrag_ki_hinweis">Zusätzliche Hinweise für die KI (optional)</label><br>
+                                <textarea name="beitrag_ki_hinweis" id="beitrag_ki_hinweis" rows="3" class="large-text" placeholder="Optional: Stilwünsche oder Hinweise."></textarea>
+                                </p>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+
                 </tbody>
                 <?php endif; ?>
                 <tr>
@@ -242,6 +257,12 @@ function beitragseinreichung_formular_anzeige() {
             </table>
 
             <?php submit_button('Beitrag einreichen'); ?>
+            <div id="submit-loader" style="display:none;">
+            <div class="submit-loader-inner">
+                <div class="submit-loader-bar"></div>
+                <p>Dein Beitrag wird verarbeitet …</p>
+            </div>
+            </div>
         </form>
     </div>
     <?php
@@ -284,7 +305,22 @@ add_action('admin_init', function () {
             'post_type'    => 'post',
             'post_author'  => get_current_user_id(),
             'post_name'    => $bereinigter_slug,
-        ]);        
+        ]);
+        // Textauszug speichern
+        $excerpt = '';
+        if (!empty($_POST['beitrag_excerpt_auto']) && $ki_aktiv) {
+            $excerpt = beitrag_ki_verbessere_text($inhalt, 'Textauszug (kurz)', $modell, $zusatz);
+        } elseif (!empty($_POST['beitrag_excerpt'])) {
+            $excerpt = sanitize_text_field($_POST['beitrag_excerpt']);
+        }
+
+        if (!empty($excerpt)) {
+            wp_update_post([
+                'ID' => $beitrag_id,
+                'post_excerpt' => $excerpt,
+            ]);
+        }
+
         // Kategorien setzen
         $kategorie_id = !empty($_POST['beitrag_kategorie']) ? (int) $_POST['beitrag_kategorie'] : 0;
         if ($kategorie_id > 0) {
@@ -452,6 +488,7 @@ function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimie
         'titel' => get_the_title($post_id),
         'original_titel' => $original_titel,
         'optimierter_titel' => $optimierter_titel,
+        'excerpt' => get_post_field('post_excerpt', $post_id),
         'original_inhalt' => $original_inhalt,
         'optimierter_inhalt' => $optimierter_inhalt,
         'modell' => $modell,
@@ -485,6 +522,14 @@ add_action('admin_footer', function () {
 
             // Stilgruppe + KI-Hinweise nur anzeigen, wenn Checkbox aktiv
             $('#beitrag_ki_individuell').on('change', function () {
+            // Textauszug automatisch generieren ein-/ausblenden
+                if ($(this).is(':checked')) {
+                    $('#ki-excerpt-option').show();
+                    $('#beitrag_excerpt_auto').prop('checked', true);
+                } else {
+                    $('#ki-excerpt-option').hide();
+                    $('#beitrag_excerpt_auto').prop('checked', false);
+                }
                 if ($(this).is(':checked')) {
                     $('#ki-optionen-container').show();
                 } else {
@@ -492,8 +537,28 @@ add_action('admin_footer', function () {
                 }
             });
 
+            function updateExcerptVisibility() {
+                if ($('#beitrag_ki_individuell').is(':checked') && $('#beitrag_excerpt_auto').is(':checked')) {
+                    $('#textauszug-zeile').hide();
+                } else {
+                    $('#textauszug-zeile').show();
+                }
+            }
+            $('#beitrag_ki_individuell, #beitrag_excerpt_auto').on('change', updateExcerptVisibility);
+            updateExcerptVisibility();
+
+
             // Initial prüfen bei Seitenladezeit
             if ($('#beitrag_ki_individuell').is(':checked')) {
+                if ($('#beitrag_ki_individuell').is(':checked')) {
+                    $('#ki-optionen-container').show();
+                    $('#ki-excerpt-option').show();
+                    $('#beitrag_excerpt_auto').prop('checked', true);
+                } else {
+                    $('#ki-optionen-container').hide();
+                    $('#ki-excerpt-option').hide();
+                    $('#beitrag_excerpt_auto').prop('checked', false);
+                }
                 $('#ki-optionen-container').show();
             }
             // Media Picker für Beitragsbild
@@ -573,6 +638,8 @@ add_action('admin_footer', function () {
                 if (!confirm(message)) {
                     e.preventDefault();
                 }
+                // Ladebalken einblenden
+                $('#submit-loader').fadeIn();
             });
 
         });
@@ -580,6 +647,7 @@ add_action('admin_footer', function () {
     <?php
 });
 
+  
 // 7. Anzeige und Verarbeitung der Einstellungen
 
 function beitragseinreichung_einstellungen_anzeige() {
@@ -612,6 +680,8 @@ function beitragseinreichung_einstellungen_anzeige() {
             $key = trim(sanitize_text_field($_POST['beitragseinreichung_api_key']));
             update_option('beitragseinreichung_api_key', $key);
         }        
+        $excerpt_aktiv = isset($_POST['beitragseinreichung_excerpt_aktiv']) ? (int) $_POST['beitragseinreichung_excerpt_aktiv'] : 1;
+        update_option('beitragseinreichung_excerpt_aktiv', $excerpt_aktiv);
         update_option('beitragseinreichung_ki_stil', $ki_stil);
         update_option('beitragseinreichung_standard_kategorien', $kategorie);
         update_option('beitragseinreichung_benachrichtigungs_user_ids', $empfaenger);
@@ -677,12 +747,28 @@ function beitragseinreichung_einstellungen_anzeige() {
                     </td>
                 </tr>
                 <tr>
+                    <th scope="row"><label for="beitragseinreichung_excerpt_aktiv">Textvorschau (Textauszug)</label></th>
+                    <td>
+                        <select name="beitragseinreichung_excerpt_aktiv"
+                                id="beitragseinreichung_excerpt_aktiv"
+                                <?php echo $ist_admin ? '' : 'disabled'; ?>>
+                            <option value="1" <?php selected(get_option('beitragseinreichung_excerpt_aktiv'), 1); ?>>Aktiviert</option>
+                            <option value="0" <?php selected(get_option('beitragseinreichung_excerpt_aktiv'), 0); ?>>Deaktiviert</option>
+                        </select>
+                        <p class="description">Wenn deaktiviert, wird das Feld für den Textauszug im Formular nicht angezeigt.</p>
+                    </td>
+                </tr>
+                <tr>
                     <th scope="row"><label for="beitragseinreichung_ki_aktiv">KI aktivieren</label></th>
                     <td>
+                    <?php
+                    $status = get_option('beitragseinreichung_api_status');
+                    $key_valid = $status && $status['status'] === 'erfolgreich';
+                    ?>
                     <select name="beitragseinreichung_ki_aktiv"
                     id="beitragseinreichung_ki_aktiv"
-                    <?php echo $ist_admin ? '' : 'disabled'; ?>
-                    title="<?php echo esc_attr('Nur Admins dürfen diese Einstellung ändern.'); ?>">
+                    <?php echo ($ist_admin && $key_valid) ? '' : 'disabled'; ?>
+                    title="<?php echo esc_attr($key_valid ? 'Nur Admins dürfen diese Einstellung ändern.' : 'Ein gültiger API-Key ist erforderlich.'); ?>">
                             <option value="0" <?php selected(get_option('beitragseinreichung_ki_aktiv'), 0); ?>>Deaktiviert</option>
                             <option value="1" <?php selected(get_option('beitragseinreichung_ki_aktiv'), 1); ?>>Aktiviert</option>
                         </select>
@@ -1021,6 +1107,9 @@ function beitragseinreichung_ki_log_anzeige() {
         echo '<strong>Optimierter Titel:</strong><br>' . nl2br(esc_html($log['optimierter_titel'])) . '<hr>';
         echo '<strong>Originaltext:</strong><br>' . nl2br(esc_html($log['original_inhalt'])) . '<br><br>';
         echo '<strong>Optimierter Text:</strong><br>' . nl2br(esc_html($log['optimierter_inhalt']));
+        if (!empty($log['excerpt'])) {
+            echo '<hr><strong>Textauszug:</strong><br>' . nl2br(esc_html($log['excerpt'])) . '<br><br>';
+        }        
         echo '<br><br><strong>Verwendetes Modell:</strong> ' . esc_html($log['modell'] ?? 'unbekannt');
         echo '</td>';
         echo '</tr>';
@@ -1130,13 +1219,16 @@ function beitragseinreichung_test_openai_verbindung($api_key = null) {
         $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
     }
 
-    if (!$api_key) {
-        update_option('beitragseinreichung_api_status', [
-            'zeit' => current_time('mysql'),
-            'status' => 'kein_key',
-            'info' => 'Kein API-Key hinterlegt.',
-        ]);
-        return;
+    $status = [
+        'zeit' => current_time('mysql'),
+    ];
+
+    if (!$api_key || trim($api_key) === '') {
+        $status['status'] = 'kein_key';
+        $status['info'] = 'Kein API-Key hinterlegt.';
+        update_option('beitragseinreichung_ki_aktiv', 0); // KI deaktivieren
+        update_option('beitragseinreichung_api_status', $status);
+        return $status;
     }
 
     $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
@@ -1154,13 +1246,10 @@ function beitragseinreichung_test_openai_verbindung($api_key = null) {
         'timeout' => 20,
     ]);
 
-    $status = [
-        'zeit' => current_time('mysql'),
-    ];
-
     if (is_wp_error($response)) {
         $status['status'] = 'netzwerkfehler';
         $status['info'] = $response->get_error_message();
+        update_option('beitragseinreichung_ki_aktiv', 0); // KI deaktivieren bei Fehler
     } else {
         $code = wp_remote_retrieve_response_code($response);
         $body = json_decode(wp_remote_retrieve_body($response), true);
@@ -1168,13 +1257,15 @@ function beitragseinreichung_test_openai_verbindung($api_key = null) {
         if ($code === 200 && isset($body['choices'][0]['message']['content'])) {
             $status['status'] = 'erfolgreich';
             $status['info'] = 'Verbindung erfolgreich.';
+            // Nur bei Erfolg keine Änderung am Aktiv-Status
         } else {
             $status['status'] = 'fehler';
             $status['info'] = 'Fehlercode: ' . $code;
+            update_option('beitragseinreichung_ki_aktiv', 0); // Deaktivieren bei Fehler
         }
     }
+
     update_option('beitragseinreichung_api_status', $status);
-    error_log(print_r($response, true));
     return $status;
 }
 
