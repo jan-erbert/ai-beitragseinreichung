@@ -1,5 +1,20 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.1.1 – 2025-04-26
+**Added:**
+- Erfolgs-Overlay nach erfolgreicher Einreichung mit Lottie-Animation
+- Button „📝 Beitrag jetzt prüfen“ im Erfolgs-Overlay (öffnet eingereichten Beitrag direkt im Editor)
+- Responsives Logo auf der Einreichungsseite (automatischer Wechsel zwischen banner-big.png und banner-small.png je nach Bildschirmgröße)
+
+**Improved:**
+- Erfolgsmeldungen, Buttons und Animationen visuell vereinheitlicht (Button-Design angepasst)
+- Fehler-Overlay verbessert (schnelleres Anzeigen, Hover-Effekte für Buttons)
+- Kleinere JavaScript-Optimierungen für die Erfolgs- und Fehleranzeige
+
+**Fixed:**
+- Fehler behoben: „beitragID is not defined“ beim Klick auf „Beitrag jetzt prüfen“
+- Fehler behoben: „Textauszug automatisch generieren“ erzeugt nur den optimierten Text
+
 ## Version 1.1.0 – 2025-04-25
 **Added:**
 - Unterstützung für Textauszug (Vorschautext):

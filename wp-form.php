@@ -3,7 +3,7 @@
  * Plugin Name: 🧠 AI Beitragseinreichung
  * Plugin URI: https://jan-erbert.de
  * Description: Ermöglicht es berechtigten Nutzern, im Backend Beiträge mit Bild und Schlagwörtern einzureichen. Beiträge werden mit Status "In Verarbeitung" gespeichert und können durch AI verbessert werden.
- * Version: 1.1
+ * Version: 1.1.1
  * Author: Jan Erbert
  * License: GPL2+
  */
@@ -146,7 +146,11 @@ function beitragseinreichung_formular_anzeige() {
     ?>
     <div class="wrap">
         
-        <img id="beitragseinreichung-logo" src="<?php echo plugin_dir_url(__FILE__) . 'img/banner-big.png'; ?>" alt="AI Beitragseinreichung Logo">
+        <picture id="beitragseinreichung-logo">
+            <source srcset="<?php echo plugin_dir_url(__FILE__) . 'img/banner-small.png'; ?>" media="(max-width: 768px)">
+            <img src="<?php echo plugin_dir_url(__FILE__) . 'img/banner-big.png'; ?>" alt="AI Beitragseinreichung Logo" style="width: 100%; max-width: 800px; height: auto;">
+        </picture>
+
         <?php if (isset($_GET['erfolg']) && isset($_GET['beitrag_id'])): 
         $link = admin_url('post.php?post=' . (int) $_GET['beitrag_id'] . '&action=edit');
         ?>
@@ -262,6 +266,17 @@ function beitragseinreichung_formular_anzeige() {
                 <div class="submit-loader-bar"></div>
                 <p>Dein Beitrag wird verarbeitet …</p>
             </div>
+            </div>
+            <div id="lottie-loader" style="display: none;">
+            <lottie-player
+                src="<?php echo plugin_dir_url(__FILE__) . 'assets/lottie/ki-animation.json'; ?>"
+                background="transparent"
+                speed="1"
+                style="max-width: 35vw; height: auto;"
+                loop
+                autoplay>
+            </lottie-player>
+            <p style="margin-top: 1em; font-size: 1.2em;">⏳ Dein Beitrag wird eingereicht...</p>
             </div>
         </form>
     </div>
@@ -413,10 +428,13 @@ add_action('admin_init', function () {
                     $zusatz
                 );
             }
-
+            
             // Weiterleitung
-            wp_redirect(admin_url('admin.php?page=beitragseinreichung&erfolg=1&beitrag_id=' . $beitrag_id));
-
+            if ($beitrag_ki_fehler) {
+                wp_redirect(admin_url('admin.php?page=beitragseinreichung&erfolg=0&fehler=1'));
+            } else {
+                wp_redirect(admin_url('admin.php?page=beitragseinreichung&erfolg=1&beitrag_id=' . $beitrag_id));
+            }
             exit;
         }
     }
@@ -428,33 +446,51 @@ function remove_emojis($string) {
 
 // KI-Textverbesserung über OpenAI GPT-4
 function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', $modell = 'gpt-4-turbo', $zusatz = '') {
-    $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
-    if (!$api_key || empty(trim($text))) return $text;
+    global $beitrag_ki_fehler; // NEU
 
-    //$stil = get_option('beitragseinreichung_ki_stil', 'professionell, freundlich, sachlich, duzend');
+    $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
+    if (!$api_key || empty(trim($text))) {
+        $beitrag_ki_fehler = true; // Fehler, kein API-Key oder leerer Text
+        return $text;
+    }
+
     $grundstil = get_option('beitragseinreichung_ki_stil', '');
     $stilgruppe = !empty($_POST['beitrag_ki_stilgruppe']) ? sanitize_text_field($_POST['beitrag_ki_stilgruppe']) : '';
-    
     $stil = trim($stilgruppe . ( $grundstil ? ', ' . $grundstil : ''));
-    
-    $prompt = <<<EOT
-Bitte überarbeite den folgenden $ziel sprachlich und stilistisch. Gib **nur den überarbeiteten Text** zurück – ohne zusätzliche Hinweise, ohne Formatierungen, ohne Gutenberg-Kommentare.
 
-Der Text soll so zurückgegeben werden, dass er sich gut für einen redaktionellen WordPress-Beitrag eignet.
+    if (stripos($ziel, 'Textauszug') !== false) {
+        $temperature = 0.4;
+        $system_message = "Du bist ein professioneller Textoptimierer. Erfinde niemals Inhalte hinzu. Gib nur reale Zusammenfassungen basierend auf dem übergebenen Text zurück.";
+        $prompt = <<<EOT
+        Bitte fasse den folgenden optimierten Blogbeitrag in 1–2 spannenden, kurzen Sätzen zusammen. 
+        Hebe die interessantesten Punkte hervor. 
+        Sei stilistisch ansprechend, aber **füge nichts hinzu**, was nicht im Originaltext steht.
 
-Stil: $stil
-EOT;
+        Stil: $stil
+
+        Hier der optimierte Beitrag:
+        $text
+        EOT;
+    } else {
+        $prompt = <<<EOT
+        Bitte überarbeite den folgenden $ziel sprachlich und stilistisch. Gib **nur den überarbeiteten Text** zurück – ohne zusätzliche Hinweise, ohne Formatierungen, ohne Gutenberg-Kommentare.
+        Der Text soll so zurückgegeben werden, dass er sich gut für einen redaktionellen WordPress-Beitrag eignet. Erfinde dabei keine Inhalte.
+
+        Stil: $stil
+
+        Text:
+        $text
+        EOT;
+    }
 
     if (!empty($zusatz)) {
         $prompt .= "\n\nZusätzliche Hinweise: $zusatz";
     }
 
-    $prompt .= "\n\nText:\n" . $text;
-
     $request_body = json_encode([
         'model' => $modell,
         'messages' => [
-            ['role' => 'system', 'content' => "Du bist ein professioneller Textoptimierer für Blogbeiträge. Gib nur den verbesserten Text zurück, ohne Erklärungen oder Kommentare."],
+            ['role' => 'system', 'content' => "Du bist ein professioneller Textoptimierer für Blogbeiträge. Gib nur den gewünschten Text zurück, ohne Erklärungen oder Kommentare."],
             ['role' => 'user', 'content' => $prompt],
         ],
         'temperature' => 0.7,
@@ -471,12 +507,27 @@ EOT;
     ]);
 
     if (is_wp_error($response)) {
+        $beitrag_ki_fehler = true;
         error_log('OpenAI Fehler: ' . $response->get_error_message());
+    
+        // Admin benachrichtigen
+        beitrag_ki_admin_benachrichtigen('Fehler: ' . $response->get_error_message());
+    
+        return $text;
+    }
+    
+    $body = json_decode(wp_remote_retrieve_body($response), true);
+    if (!isset($body['choices'][0]['message']['content'])) {
+        $beitrag_ki_fehler = true;
+    
+        // Admin benachrichtigen
+        beitrag_ki_admin_benachrichtigen('Antwort unvollständig oder ungültig.');
+    
         return $text;
     }
 
-    $body = json_decode(wp_remote_retrieve_body($response), true);
-    return $body['choices'][0]['message']['content'] ?? $text;
+    $beitrag_ki_fehler = false; // Alles gut
+    return $body['choices'][0]['message']['content'];
 }
 
 function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimierter_titel, $original_inhalt, $optimierter_inhalt, $modell, $zusatz) {
@@ -513,6 +564,7 @@ add_action('init', function () {
 
 // 5. JavaScript für Media Picker und Validierung
 add_action('admin_footer', function () {
+    echo '<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>';
     $screen = get_current_screen();
     if ($screen->id !== 'toplevel_page_beitragseinreichung') return;
     ?>
@@ -638,10 +690,121 @@ add_action('admin_footer', function () {
                 if (!confirm(message)) {
                     e.preventDefault();
                 }
-                // Ladebalken einblenden
-                $('#submit-loader').fadeIn();
-            });
+                // Nur passenden Loader anzeigen
+                if ($('#beitrag_ki_individuell').is(':checked')) {
+                    $('#lottie-loader').fadeIn();
+                    $('#submit-loader').hide();
+                    $('html, body').animate({
+                        scrollTop: $('#lottie-loader').offset().top - 40
+                    }, 500);
+                } else {
+                    $('#submit-loader').fadeIn();
+                    $('#lottie-loader').hide();
+                    $('html, body').animate({
+                        scrollTop: $('#submit-loader').offset().top - 40
+                    }, 500);
+                }
 
+            });
+            const urlParams = new URLSearchParams(window.location.search);
+
+            if (urlParams.get('fehler') === '1') {
+                $('#submit-loader, #lottie-loader').hide();
+                $('body').append(`
+                    <div id="error-overlay" style="position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(220, 53, 69, 0.85); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; text-align: center; display: none;">
+                        <button id="close-error" style="position: absolute; top: 20px; right: 30px; background: none; border: none; color: white; font-size: 30px; cursor: pointer;">&times;</button>
+                        <h2 style="font-size: 2em; margin-top: 0;">❌ Fehler bei der KI-Optimierung</h2>
+                        <div id="error-animation-container" style="margin: 20px 0;">
+                            <lottie-player
+                                src="<?php echo plugin_dir_url(__FILE__) . 'assets/lottie/error-animation.json'; ?>"
+                                background="transparent"
+                                speed="0.7"
+                                style="width: 200px; height: 200px;"
+                                autoplay
+                                loop="false">
+                            </lottie-player>
+                        </div>
+                        <p style="margin: 15px 0 20px;">Leider konnte dein Beitrag nicht automatisch verbessert werden.</p>
+                        <div style="display: flex; gap: 20px; margin-top: 20px;">
+                            <button id="retry-btn" class="button button-primary custom-hover" style="padding: 10px 20px; font-size: 16px; border-radius: 5px;">🔄 Erneut versuchen</button>
+                            <button id="use-original-btn" class="button button-secondary custom-hover" style="padding: 10px 20px; font-size: 16px; border-radius: 5px;">➡️ Original verwenden</button>
+                        </div>
+                    </div>
+                `);
+
+                // Nach kurzem Timeout einblenden (wirkt angenehmer)
+                setTimeout(function() {
+                    $('#error-overlay').fadeIn(300);
+                }, 100);
+
+                $('#close-error').on('click', function() {
+                    $('#error-overlay').fadeOut();
+                });
+
+                $('#retry-btn').on('click', function() {
+                    window.location.reload();
+                });
+
+                $('#use-original-btn').on('click', function() {
+                    window.location.href = '<?php echo admin_url('admin.php?page=beitragseinreichung'); ?>';
+                });
+
+                // Button Hover Effects
+                $(document).on('mouseenter', '.custom-hover', function() {
+                    $(this).css('filter', 'brightness(1.2)');
+                }).on('mouseleave', '.custom-hover', function() {
+                    $(this).css('filter', 'brightness(1)');
+                });
+            }
+
+            if (urlParams.get('erfolg') === '1' && urlParams.get('beitrag_id')) {
+                const beitragID = urlParams.get('beitrag_id');
+
+                $('#submit-loader, #lottie-loader').hide();
+                $('body').append(`
+                    <div id="success-overlay" style="position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(40, 167, 69, 0.85); color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; text-align: center;">
+                        <button id="close-success" style="position: absolute; top: 20px; right: 30px; background: none; border: none; color: white; font-size: 30px; cursor: pointer;">&times;</button>
+                        <h2 style="font-size: 2em; margin-top: 0;">✅ Beitrag erfolgreich eingereicht!</h2>
+                        <div id="success-animation-container" style="margin: 20px 0;">
+                            <lottie-player
+                                src="<?php echo plugin_dir_url(__FILE__) . 'assets/lottie/success-animation.json'; ?>"
+                                background="transparent"
+                                speed="0.7"
+                                style="width: 200px; height: 200px;"
+                                autoplay>
+                            </lottie-player>
+                        </div>
+                        <p style="margin: 15px 0 20px;">Dein Beitrag wurde gespeichert und wartet auf Prüfung.</p>
+                        <div style="display: flex; gap: 20px; margin-top: 20px;">
+                            <button class="button button-primary custom-hover" onclick="window.location.href='<?php echo admin_url('admin.php?page=beitragseinreichung'); ?>'" style="padding: 10px 20px; font-size: 16px; border-radius: 5px; background: #2271b1; border-color: #2271b1; color: white;">Neuen Beitrag einreichen</button>
+                            <button 
+                            id="btn-pruefen" 
+                            class="button button-primary custom-hover" 
+                            style="padding: 10px 20px; font-size: 16px; border-radius: 5px; background: #2271b1; border-color: #2271b1; color: white;"
+                            data-beitrag-id="${beitragID}">
+                            📝 Beitrag jetzt prüfen
+                            </button>
+                        </div>
+                    </div>
+                `);
+                $(document).on('click', '#btn-pruefen', function() {
+                    const beitragID = $(this).data('beitrag-id');
+                    if (beitragID) {
+                        window.location.href = '<?php echo admin_url('post.php'); ?>?post=' + beitragID + '&action=edit';
+                    }
+                });
+
+                $('#close-success').on('click', function() {
+                    $('#success-overlay').fadeOut();
+                });
+            }
+
+            // Zusätzlicher Hover-Effekt für schöne Buttons:
+            $(document).on('mouseenter', '.custom-hover', function() {
+                $(this).css('filter', 'brightness(1.2)');
+            }).on('mouseleave', '.custom-hover', function() {
+                $(this).css('filter', 'brightness(1)');
+            });
         });
     </script>
     <?php
@@ -1280,3 +1443,17 @@ add_action('admin_enqueue_scripts', function ($hook) {
     );
 });
 
+function beitrag_ki_admin_benachrichtigen($fehlermeldung) {
+    $admin_email = get_option('admin_email');
+    $benutzer = wp_get_current_user();
+    $zeit = current_time('mysql');
+
+    $betreff = '❌ Fehler bei der KI-Optimierung im Plugin';
+    $nachricht = "Es ist ein Fehler bei der KI-Optimierung aufgetreten.\n\n";
+    $nachricht .= "Fehler: $fehlermeldung\n";
+    $nachricht .= "Benutzer: {$benutzer->user_login}\n";
+    $nachricht .= "Zeitpunkt: $zeit\n\n";
+    $nachricht .= "Bitte prüfe die Server-Logs oder die API-Verbindung.";
+
+    wp_mail($admin_email, $betreff, $nachricht);
+}

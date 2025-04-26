@@ -1,6 +1,6 @@
 # 🧠 AI Beitragseinreichung
 
-> Version: 1.1
+> Version: 1.1.1
 > Autor: Jan Erbert  
 > Letztes Update: 2025-04-25  
 > Lizenz: GPL2+
