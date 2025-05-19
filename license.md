@@ -2,7 +2,7 @@
 
 Copyright (C) 2025 Jan Erbert  
 Plugin Name: AI Beitragseinreichung  
-Plugin URI: https://jan-erbert.de  
+Plugin URI: https://jan-erbert.de/ai-beitragseinreichung
 Author: Jan Erbert  
 License: GNU General Public License v2.0 or later  
 License URI: https://www.gnu.org/licenses/gpl-2.0.html  
