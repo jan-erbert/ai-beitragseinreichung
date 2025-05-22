@@ -279,6 +279,11 @@ function beitragseinreichung_formular_anzeige() {
             <p style="margin-top: 1em; font-size: 1.2em;">⏳ Dein Beitrag wird eingereicht...</p>
             </div>
         </form>
+        <p style="margin-top: 40px; font-size: 0.95em;">
+            ℹ️ <a href="https://github.com/jan-erbert/ai-beitragseinreichung/wiki/Beitrag-einreichen" target="_blank" rel="noopener noreferrer">
+                Anleitung zur Beitragseinreichung im Wiki anzeigen →
+            </a>
+        </p>
     </div>
     <?php
 }
@@ -465,7 +470,7 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
         Bitte fasse den folgenden optimierten Blogbeitrag in 1–2 spannenden, kurzen Sätzen zusammen. 
         Hebe die interessantesten Punkte hervor. 
         Sei stilistisch ansprechend, aber **füge nichts hinzu**, was nicht im Originaltext steht.
-
+        Verwende hier bitte keinerlei Formatierungen: **kein Markdown, kein Fettdruck, keine Sonderzeichen, keine Emojis** – nur reiner Fließtext.
         Stil: $stil
 
         Hier der optimierte Beitrag:
@@ -689,6 +694,7 @@ add_action('admin_footer', function () {
                 }
                 if (!confirm(message)) {
                     e.preventDefault();
+                    return; 
                 }
                 // Nur passenden Loader anzeigen
                 if ($('#beitrag_ki_individuell').is(':checked')) {
@@ -1141,6 +1147,11 @@ function beitragseinreichung_einstellungen_anzeige() {
 
             <?php submit_button('Einstellungen speichern'); ?>
         </form>
+        <p style="margin-top: 40px; font-size: 0.95em;">
+            ℹ️ <a href="https://github.com/jan-erbert/ai-beitragseinreichung/wiki" target="_blank" rel="noopener noreferrer">
+                Weitere Hilfe & Dokumentation findest du im Plugin-Wiki →
+            </a>
+        </p>
         <script>
         document.addEventListener('DOMContentLoaded', function () {
             const modellSelect = document.getElementById('beitragseinreichung_ki_modell');
