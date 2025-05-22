@@ -14,6 +14,7 @@
 
 **Fixed:**
 - Problem behoben: KI-generierte Textauszüge enthielten unerlaubte Markdown-Formatierung (`**fett**`) → wird nun automatisch entfernt
+- Fehler-Overlay korrekt beendet bei KI-Abbruch (Endlosschleife nach KI-Abbruch behoben.)
 
 ## Version 1.1.1 – 2025-04-26
 **Added:**
