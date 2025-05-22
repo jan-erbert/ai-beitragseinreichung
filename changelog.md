@@ -1,5 +1,20 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.1.2 – 2025-05-22
+
+**Added:**
+- Wiki-Verlinkung am Ende der Seiten „Einstellungen“ und „Beitrag einreichen“
+- Sicherheitshinweis zur vertraulichen Behandlung des OpenAI API-Keys
+- Neuer Hilfe-Abschnitt zur API-Integration und OpenAI-Registrierung
+
+**Improved:**
+- Ausführlichere Dokumentation im GitHub-Wiki (Installationshilfe, Beispiele, Debug)
+- Stilgruppenbeschreibung überarbeitet mit formatierbarem Beispiel
+- Übersichtliche Weiterleitungen innerhalb der Wiki-Seiten eingebaut
+
+**Fixed:**
+- Problem behoben: KI-generierte Textauszüge enthielten unerlaubte Markdown-Formatierung (`**fett**`) → wird nun automatisch entfernt
+
 ## Version 1.1.1 – 2025-04-26
 **Added:**
 - Erfolgs-Overlay nach erfolgreicher Einreichung mit Lottie-Animation
