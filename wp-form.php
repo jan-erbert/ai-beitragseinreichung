@@ -3,7 +3,7 @@
  * Plugin Name: 🧠 AI Beitragseinreichung
  * Plugin URI: https://jan-erbert.de
  * Description: Ermöglicht es berechtigten Nutzern, im Backend Beiträge mit Bild und Schlagwörtern einzureichen. Beiträge werden mit Status "In Verarbeitung" gespeichert und können durch AI verbessert werden.
- * Version: 1.1.1
+ * Version: 1.1.3
  * Author: Jan Erbert
  * License: GPL2+
  */
@@ -159,21 +159,21 @@ function beitragseinreichung_formular_anzeige() {
             </div>
         <?php endif; ?>
 
-        <form id="beitragseinreichung-formular" method="post" enctype="multipart/form-data">
+        <form id="beitragseinreichung-formular" method="post" enctype="multipart/form-data" action="">
             <?php wp_nonce_field('beitrag_einreichen', 'beitrag_nonce'); ?>
             <h1>Beitrag einreichen</h1>
             <table class="form-table">
                 <tr>
-                    <th><label for="beitrag_titel">Titel</label></th>
+                    <th><label for="beitrag_titel">Titel <span class="required">*</span></label></th>
                     <td><input type="text" name="beitrag_titel" id="beitrag_titel" style="width: 100%;" class="regular-text" required></td>
                 </tr>
                 <tr>
-                    <th><label for="beitrag_inhalt">Inhalt</label></th>
+                    <th><label for="beitrag_inhalt">Inhalt <span class="required">*</span></label></th>
                     <td><textarea name="beitrag_inhalt" id="beitrag_inhalt" rows="16" class="large-text" required></textarea></td>
                 </tr>
                 <?php if ($excerpt_aktiv): ?>
                 <tr id="textauszug-zeile">
-                    <th><label for="beitrag_excerpt">Textauszug (optional)</label></th>
+                    <th><label for="beitrag_excerpt">Textauszug</label></th>
                     <td>
                         <textarea name="beitrag_excerpt" id="beitrag_excerpt" rows="3" class="large-text" placeholder="Kurze Lesevorschau (optional)"></textarea>
                     </td>
@@ -198,20 +198,22 @@ function beitragseinreichung_formular_anzeige() {
                             </div>
                             <?php endif; ?>
                             <div id="ki-optionen-container" style="display: none;">
-                                <p><label for="beitrag_ki_stilgruppe">Stil der Ausgabe</label><br>
+                                <p><label for="beitrag_ki_stilgruppe">Stil der Ausgabe <span class="required">*</span></label><br>
                                 <select name="beitrag_ki_stilgruppe" id="beitrag_ki_stilgruppe">
                                     <option value="">– Stil auswählen –</option>
                                     <?php
                                     $stilgruppen = get_option('beitragseinreichung_ki_stilgruppen', []);
                                     foreach ($stilgruppen as $gruppe) {
-                                        echo '<option value="' . esc_attr($gruppe['stil']) . '">' . esc_html($gruppe['label']) . '</option>';
+                                        $ziel = isset($gruppe['ziel']) ? $gruppe['ziel'] : '';
+                                        echo '<option value="' . esc_attr($gruppe['label']) . '" title="' . esc_attr($ziel) . '">' . esc_html($gruppe['label']) . '</option>';
                                     }
                                     ?>
                                 </select>
+                                <p id="stilgruppe-zieltext" style="font-size:0.9em; color:#900000;"></p>
                                 </p>
                                 <p>
                                 <label for="beitrag_ki_hinweis">Zusätzliche Hinweise für die KI (optional)</label><br>
-                                <textarea name="beitrag_ki_hinweis" id="beitrag_ki_hinweis" rows="3" class="large-text" placeholder="Optional: Stilwünsche oder Hinweise."></textarea>
+                                <textarea name="beitrag_ki_hinweis" id="beitrag_ki_hinweis" rows="3" class="large-text" placeholder="Optional: Bei besonderen zusätzlichen Stilwünschen oder Hinweisen."></textarea>
                                 </p>
                             </div>
                         </div>
@@ -221,11 +223,11 @@ function beitragseinreichung_formular_anzeige() {
                 </tbody>
                 <?php endif; ?>
                 <tr>
-                    <th><label for="beitrag_tags">Schlagwörter</label></th>
+                    <th><label for="beitrag_tags">Schlagwörter <span class="required">*</span></label></th>
                     <td><input type="text" name="beitrag_tags" id="beitrag_tags" class="regular-text" placeholder="z.B. Mittelstrecke, Bad Kreuznach, 2025"></td>
                 </tr>
                 <tr>
-                <th><label for="beitrag_kategorie">Kategorie</label></th>
+                <th><label for="beitrag_kategorie">Kategorie <span class="required">*</span></label></th>
                 <td>
                     <select name="beitrag_kategorie" id="beitrag_kategorie">
                         <?php
@@ -285,6 +287,27 @@ function beitragseinreichung_formular_anzeige() {
             </a>
         </p>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const select = document.getElementById('beitrag_ki_stilgruppe');
+            const zielAnzeigen = document.getElementById('stilgruppe-zieltext');
+
+            const stilgruppen = <?php echo json_encode(get_option('beitragseinreichung_ki_stilgruppen', [])); ?>;
+
+            function updateZieltext() {
+                const selectedStil = select.value;
+                const gruppe = stilgruppen.find(g => g.stil === selectedStil);
+                if (gruppe && gruppe.ziel) {
+                    zielAnzeigen.textContent = "Stilgruppen Ziel: " + gruppe.ziel;
+                } else {
+                    zielAnzeigen.textContent = '';
+                }
+            }
+
+            select.addEventListener('change', updateZieltext);
+            updateZieltext();
+        });
+    </script>
     <?php
 }
 
@@ -295,6 +318,10 @@ add_action('admin_init', function () {
         wp_verify_nonce($_POST['beitrag_nonce'], 'beitrag_einreichen') &&
         current_user_can('edit_posts')
     ) {
+        // Globale Fehler-Variable zur Erkennung von Problemen bei der KI-Optimierung
+        global $beitrag_ki_fehler;
+        $beitrag_ki_fehler = false;
+
         $titel = sanitize_text_field($_POST['beitrag_titel']);
         $inhalt = wp_kses_post($_POST['beitrag_inhalt']);
         $tags = sanitize_text_field($_POST['beitrag_tags']);
@@ -311,8 +338,20 @@ add_action('admin_init', function () {
              $modell = get_option('beitragseinreichung_ki_modell', 'gpt-4-turbo');
             // Überarbeiten mit GPT-4
             $zusatz = sanitize_textarea_field($_POST['beitrag_ki_hinweis'] ?? '');
-            $titel = beitrag_ki_verbessere_text($titel, 'Beitragstitel', $modell, $zusatz);
-            $inhalt = beitrag_ki_verbessere_text($inhalt, 'Beitragstext', $modell, $zusatz);                    
+            // Immer initialisieren, damit sie später verfügbar ist
+            $stilgruppe_label = '';
+
+            if ($ki_aktiv) {
+                // Originale merken
+                $original_titel = $titel;
+                $original_inhalt = $inhalt;
+                $modell = get_option('beitragseinreichung_ki_modell', 'gpt-4-turbo');
+                $zusatz = sanitize_textarea_field($_POST['beitrag_ki_hinweis'] ?? '');
+                $stilgruppe_label = !empty($_POST['beitrag_ki_stilgruppe']) ? sanitize_text_field($_POST['beitrag_ki_stilgruppe']) : '';
+
+                $titel = beitrag_ki_verbessere_text($titel, 'Beitragstitel', $modell, $zusatz);
+                $inhalt = beitrag_ki_verbessere_text($inhalt, 'Beitragstext', $modell, $zusatz);
+            }                   
         }
 
         // Beitrag anlegen
@@ -423,15 +462,16 @@ add_action('admin_init', function () {
             
             if ($ki_aktiv && !is_wp_error($beitrag_id)) {
                 beitrag_ki_log_speichern(
-                    $beitrag_id,
-                    get_current_user_id(),
-                    $original_titel,
-                    $titel,
-                    $original_inhalt,
-                    $inhalt,
-                    $modell,
-                    $zusatz
-                );
+                $beitrag_id,
+                get_current_user_id(),
+                $original_titel,
+                $titel,
+                $original_inhalt,
+                $inhalt,
+                $modell,
+                $zusatz,
+                $stilgruppe_label
+            );
             }
             
             // Weiterleitung
@@ -535,7 +575,8 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
     return $body['choices'][0]['message']['content'];
 }
 
-function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimierter_titel, $original_inhalt, $optimierter_inhalt, $modell, $zusatz) {
+
+function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimierter_titel, $original_inhalt, $optimierter_inhalt, $modell, $zusatz, $stilgruppe = '') {
     $logs = get_option('beitragseinreichung_ki_logs', []);
     $logs[] = [
         'zeit' => current_time('mysql'),
@@ -548,11 +589,11 @@ function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimie
         'original_inhalt' => $original_inhalt,
         'optimierter_inhalt' => $optimierter_inhalt,
         'modell' => $modell,
+        'stilgruppe' => $stilgruppe,
         'zusatz' => $zusatz,
     ];
     update_option('beitragseinreichung_ki_logs', $logs);
 }
-
 
 // 4. Custom Post Status registrieren
 add_action('init', function () {
@@ -832,9 +873,11 @@ function beitragseinreichung_einstellungen_anzeige() {
                 $label = sanitize_text_field($label);
                 $stil = sanitize_text_field($_POST['stilgruppe_stil'][$i]);
                 if (!empty($label) && !empty($stil)) {
+                    $ziel = sanitize_text_field($_POST['stilgruppe_ziel'][$i] ?? '');
                     $stilgruppen[] = [
                         'label' => $label,
-                        'stil' => $stil
+                        'stil' => $stil,
+                        'ziel' => $ziel
                     ];
                 }
             }
@@ -957,6 +1000,8 @@ function beitragseinreichung_einstellungen_anzeige() {
                             <input type="text" id="stilgruppe-label" style="width: 100%;"><br><br>
                             <label for="stilgruppe-stil">Stilbeschreibung:</label><br>
                             <textarea id="stilgruppe-stil" rows="16" style="width: 100%;"></textarea><br><br>
+                            <label for="stilgruppe-ziel">Ziel (optional):</label><br>
+                            <input type="text" id="stilgruppe-ziel" style="width: 100%;"><br><br>
                             <button type="button" class="button button-primary" id="stilgruppe-speichern">Speichern</button>
                             <button type="button" class="button button-secondary" id="stilgruppe-loeschen">Löschen</button>
                         </div>
@@ -993,14 +1038,25 @@ function beitragseinreichung_einstellungen_anzeige() {
                             auswahl.value = '';
                             inputLabel.value = '';
                             inputStil.value = '';
+                            document.getElementById('stilgruppe-ziel').value = '';
                             editor.dataset.index = '';
                         } else {
                             const gruppe = stilgruppen[index];
                             inputLabel.value = gruppe.label;
                             inputStil.value = gruppe.stil;
+                            document.getElementById('stilgruppe-ziel').value = gruppe.ziel || '';
                             editor.dataset.index = index;
                         }
+
+                        // Hinweistext einfügen
+                        editor.querySelectorAll('p.stilgruppe-hinweis').forEach(p => p.remove());
+                        document.getElementById('stilgruppe-ziel').insertAdjacentHTML('afterend', `
+                            <p class="stilgruppe-hinweis" style="color: #666; font-size: 0.85em; margin-top: 8px;">
+                                💡 Denk nach dem lokalen Speichern der Stilgruppe daran, auch unten auf <strong>„Einstellungen speichern“</strong> zu klicken!
+                            </p>
+                        `);
                     }
+
 
                     auswahl.addEventListener('change', () => {
                         const index = auswahl.value;
@@ -1016,13 +1072,14 @@ function beitragseinreichung_einstellungen_anzeige() {
                     speichernBtn.addEventListener('click', () => {
                         const label = inputLabel.value.trim();
                         const stil = inputStil.value.trim();
+                        const ziel = document.getElementById('stilgruppe-ziel').value.trim();
                         if (!label || !stil) return alert('Bitte fülle beide Felder aus.');
 
                         const index = editor.dataset.index;
                         if (index === '') {
-                            stilgruppen.push({ label, stil });
+                            stilgruppen.push({ label, stil, ziel });
                         } else {
-                            stilgruppen[index] = { label, stil };
+                            stilgruppen[index] = { label, stil, ziel };
                         }
                         updateDropdown();
                         auswahl.value = '';
@@ -1044,7 +1101,7 @@ function beitragseinreichung_einstellungen_anzeige() {
 
                     function syncHiddenInputs() {
                         const form = auswahl.closest('form');
-                        form.querySelectorAll('input[name="stilgruppe_label[]"], input[name="stilgruppe_stil[]"]').forEach(el => el.remove());
+                        form.querySelectorAll('input[name="stilgruppe_label[]"], input[name="stilgruppe_stil[]"], input[name="stilgruppe_ziel[]"]').forEach(el => el.remove());
                         stilgruppen.forEach(gruppe => {
                             const input1 = document.createElement('input');
                             input1.type = 'hidden';
@@ -1056,6 +1113,11 @@ function beitragseinreichung_einstellungen_anzeige() {
                             input2.name = 'stilgruppe_stil[]';
                             input2.value = gruppe.stil;
                             form.appendChild(input2);
+                            const input3 = document.createElement('input');
+                            input3.type = 'hidden';
+                            input3.name = 'stilgruppe_ziel[]';
+                            input3.value = gruppe.ziel || '';
+                            form.appendChild(input3);
                         });
                     }
 
@@ -1203,6 +1265,7 @@ function beitragseinreichung_einstellungen_anzeige() {
                 <input type="text" name="stilgruppe_label[]" placeholder="Bezeichnung (z. B. Bericht – sachlich)" style="width: 40%;" required>
                 <textarea name="stilgruppe_stil[]" placeholder="Stilbeschreibung (z. B. sachlich, sportlich, informativ)" rows="14" style="width: 100%;" required></textarea>
                 <button type="button" class="button stilgruppe-entfernen">–</button>
+                <p style="color: #666; font-size: 0.85em; margin-top: 8px;">💡 Denk nach dem lokalen Speichern der Stilgruppe daran, auch unten auf <strong>„Einstellungen speichern“</strong> zu klicken!</p>
             `;
             container.appendChild(div);
         });
@@ -1285,10 +1348,12 @@ function beitragseinreichung_ki_log_anzeige() {
             echo '<hr><strong>Textauszug:</strong><br>' . nl2br(esc_html($log['excerpt'])) . '<br><br>';
         }        
         echo '<br><br><strong>Verwendetes Modell:</strong> ' . esc_html($log['modell'] ?? 'unbekannt');
+        $stilgruppe = isset($log['stilgruppe']) && trim($log['stilgruppe']) !== '' ? $log['stilgruppe'] : '<unbekannt>';
+        echo '<br><strong>Stilgruppe:</strong> ' . esc_html($stilgruppe);
+
         echo '</td>';
         echo '</tr>';
     }
-
     echo '</tbody>';
     echo '</table>';
     echo '</div>';
@@ -1378,7 +1443,7 @@ function render_block_from_lines($lines) {
     if (preg_match('/^[-*] (.+)/', $lines[0])) {
         $items = '';
         foreach ($lines as $line) {
-            $line = ltrim($line, '-* ');
+            $line = ltrim((string) $line, '-* ');
             $items .= '<li>' . wp_kses_post(beitrag_formatiere_inline_markdown($line)) . '</li>';
         }
         return '<!-- wp:list --><ul>' . $items . '</ul><!-- /wp:list -->';

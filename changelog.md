@@ -1,5 +1,21 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.1.3 – 2025-05-25
+
+**Added:**
+- Feld „Ziel“ für Stilgruppen zur Beschreibung des Einsatzzwecks.
+- Tooltip mit Zieltext bei Hover über Stilgruppen-Auswahl im Formular.
+- Zieltext wird zusätzlich unterhalb der Stilgruppen-Auswahl angezeigt.
+- Hinweis unter Stilgruppen-Editor, dass unten auf „Einstellungen speichern“ geklickt werden muss.
+
+**Improved:**
+- Stilgruppen-Editor visuell und funktional überarbeitet.
+- Formularvalidierung bei Stilgruppenwahl (wenn KI aktiv) verbessert.
+
+**Fixed:**
+- Stilgruppen-Zieltext wurde beim Bearbeiten nicht korrekt angezeigt.
+- Hinweis auf „Einstellungen speichern“ erschien mehrfach.
+
 ## Version 1.1.2 – 2025-05-22
 
 **Added:**
