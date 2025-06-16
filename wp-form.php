@@ -1,100 +1,103 @@
 <?php
+
 /**
  * Plugin Name: 🧠 AI Beitragseinreichung
  * Plugin URI: https://jan-erbert.de
  * Description: Ermöglicht es berechtigten Nutzern, im Backend Beiträge mit Bild und Schlagwörtern einzureichen. Beiträge werden mit Status "In Verarbeitung" gespeichert und können durch AI verbessert werden.
- * Version: 1.1.3
+ * Version: 1.1.4
  * Author: Jan Erbert
  * License: GPL2+
  */
 
- // 0. Custom Capabilities registrieren (bei Plugin-Activation)
- register_activation_hook(__FILE__, function () {
-     $roles = ['administrator', 'editor', 'author'];
-     foreach ($roles as $role_name) {
-         $role = get_role($role_name);
-         if (!$role) continue;
- 
-         // Basisrechte zuweisen
-         $role->add_cap('beitragseinreichung_submit');
-         if ($role_name === 'administrator') {
-             $role->add_cap('beitragseinreichung_settings');
-             $role->add_cap('beitragseinreichung_admin');
-         }
-     }
+// 0. Custom Capabilities registrieren (bei Plugin-Activation)
+register_activation_hook(__FILE__, function () {
+    $roles = ['administrator', 'editor', 'author'];
+    foreach ($roles as $role_name) {
+        $role = get_role($role_name);
+        if (!$role) continue;
+
+        // Basisrechte zuweisen
+        $role->add_cap('beitragseinreichung_submit');
+        if ($role_name === 'administrator') {
+            $role->add_cap('beitragseinreichung_settings');
+            $role->add_cap('beitragseinreichung_admin');
+        }
+    }
     // Verbindungstest beim Aktivieren durchführen
     beitragseinreichung_test_openai_verbindung();
- });
- 
- add_action('members_register_cap_groups', 'register_ai_beitragseinreichung_cap_group');
- function register_ai_beitragseinreichung_cap_group() {
-     members_register_cap_group('ai_beitragseinreichung', [
-         'label' => __('AI Beitragseinreichung', 'ai-beitragseinreichung'),
-         'icon' => 'dashicons-edit',
-         'priority' => 10,
-     ]);
- }
- 
- add_action('members_register_caps', 'register_ai_beitragseinreichung_caps');
- function register_ai_beitragseinreichung_caps() {
-     members_register_cap('beitragseinreichung_submit', [
-         'label' => __('Beiträge einreichen', 'ai-beitragseinreichung'),
-         'group' => 'ai_beitragseinreichung',
-     ]);
-     members_register_cap('beitragseinreichung_settings', [
-         'label' => __('Einstellungen verwalten', 'ai-beitragseinreichung'),
-         'group' => 'ai_beitragseinreichung',
-     ]);
-     members_register_cap('beitragseinreichung_admin', [
-         'label' => __('Erweiterte Admin-Rechte (API-Key etc.)', 'ai-beitragseinreichung'),
-         'group' => 'ai_beitragseinreichung',
-     ]);
- }
+});
 
- // 1. Menüpunkte je nach Capability anzeigen
- add_action('admin_menu', function () {
-     // Nur wenn ein Recht vorhanden ist
-     if (current_user_can('beitragseinreichung_submit') || current_user_can('beitragseinreichung_settings')) {
-         add_menu_page(
-             'Beitrag einreichen',
-             'Beitrag einreichen',
-             'read', // Berechtigung später prüfen
-             'beitragseinreichung',
-             function () {
-                 if (!current_user_can('beitragseinreichung_submit')) {
-                     wp_die(__('Du hast keine Berechtigung, diese Seite zu sehen.'));
-                 }
-                 beitragseinreichung_formular_anzeige();
-             },
-             'dashicons-edit',
-             20
-         );
-     } 
- 
-     if (current_user_can('beitragseinreichung_settings')) {
-         add_submenu_page(
-             'beitragseinreichung',
-             'Beitragseinreichung – Einstellungen',
-             'Einstellungen',
-             'beitragseinreichung_settings',
-             'beitragseinreichung_einstellungen',
-             'beitragseinreichung_einstellungen_anzeige'
-         );
-     }
- 
-     if (current_user_can('beitragseinreichung_submit')) {
-         add_submenu_page(
-             'beitragseinreichung',
-             'KI-Protokoll',
-             'KI-Protokoll',
-             'beitragseinreichung_submit',
-             'beitragseinreichung_ki_protokoll',
-             'beitragseinreichung_ki_log_anzeige'
-         );
-     }
- });
+add_action('members_register_cap_groups', 'register_ai_beitragseinreichung_cap_group');
+function register_ai_beitragseinreichung_cap_group()
+{
+    members_register_cap_group('ai_beitragseinreichung', [
+        'label' => __('AI Beitragseinreichung', 'ai-beitragseinreichung'),
+        'icon' => 'dashicons-edit',
+        'priority' => 10,
+    ]);
+}
 
- add_action('wp_ajax_beitragseinreichung_test_openai_jetzt', function () {
+add_action('members_register_caps', 'register_ai_beitragseinreichung_caps');
+function register_ai_beitragseinreichung_caps()
+{
+    members_register_cap('beitragseinreichung_submit', [
+        'label' => __('Beiträge einreichen', 'ai-beitragseinreichung'),
+        'group' => 'ai_beitragseinreichung',
+    ]);
+    members_register_cap('beitragseinreichung_settings', [
+        'label' => __('Einstellungen verwalten', 'ai-beitragseinreichung'),
+        'group' => 'ai_beitragseinreichung',
+    ]);
+    members_register_cap('beitragseinreichung_admin', [
+        'label' => __('Erweiterte Admin-Rechte (API-Key etc.)', 'ai-beitragseinreichung'),
+        'group' => 'ai_beitragseinreichung',
+    ]);
+}
+
+// 1. Menüpunkte je nach Capability anzeigen
+add_action('admin_menu', function () {
+    // Nur wenn ein Recht vorhanden ist
+    if (current_user_can('beitragseinreichung_submit') || current_user_can('beitragseinreichung_settings')) {
+        add_menu_page(
+            'Beitrag einreichen',
+            'Beitrag einreichen',
+            'read', // Berechtigung später prüfen
+            'beitragseinreichung',
+            function () {
+                if (!current_user_can('beitragseinreichung_submit')) {
+                    wp_die(__('Du hast keine Berechtigung, diese Seite zu sehen.'));
+                }
+                beitragseinreichung_formular_anzeige();
+            },
+            'dashicons-edit',
+            20
+        );
+    }
+
+    if (current_user_can('beitragseinreichung_settings')) {
+        add_submenu_page(
+            'beitragseinreichung',
+            'Beitragseinreichung – Einstellungen',
+            'Einstellungen',
+            'beitragseinreichung_settings',
+            'beitragseinreichung_einstellungen',
+            'beitragseinreichung_einstellungen_anzeige'
+        );
+    }
+
+    if (current_user_can('beitragseinreichung_submit')) {
+        add_submenu_page(
+            'beitragseinreichung',
+            'KI-Protokoll',
+            'KI-Protokoll',
+            'beitragseinreichung_submit',
+            'beitragseinreichung_ki_protokoll',
+            'beitragseinreichung_ki_log_anzeige'
+        );
+    }
+});
+
+add_action('wp_ajax_beitragseinreichung_test_openai_jetzt', function () {
     check_ajax_referer('test_openai_ajax');
 
     $status = beitragseinreichung_test_openai_verbindung();
@@ -105,26 +108,26 @@
         wp_send_json_error($status['info']);
     }
 });
- 
- // 2. Nur Admins dürfen im Protokoll löschen
- add_action('wp_ajax_beitragseinreichung_ki_log_loeschen', function () {
-     if (!current_user_can('beitragseinreichung_admin')) {
-         wp_send_json_error('Keine Berechtigung');
-     }
-     check_ajax_referer('ki_log_loeschen');
- 
-     $index = isset($_POST['index']) ? (int) $_POST['index'] : -1;
-     $logs = get_option('beitragseinreichung_ki_logs', []);
- 
-     if ($index >= 0 && $index < count($logs)) {
-         array_splice($logs, count($logs) - 1 - $index, 1);
-         update_option('beitragseinreichung_ki_logs', $logs);
-         wp_send_json_success();
-     }
- 
-     wp_send_json_error('Ungültiger Index');
- });
- 
+
+// 2. Nur Admins dürfen im Protokoll löschen
+add_action('wp_ajax_beitragseinreichung_ki_log_loeschen', function () {
+    if (!current_user_can('beitragseinreichung_admin')) {
+        wp_send_json_error('Keine Berechtigung');
+    }
+    check_ajax_referer('ki_log_loeschen');
+
+    $index = isset($_POST['index']) ? (int) $_POST['index'] : -1;
+    $logs = get_option('beitragseinreichung_ki_logs', []);
+
+    if ($index >= 0 && $index < count($logs)) {
+        array_splice($logs, count($logs) - 1 - $index, 1);
+        update_option('beitragseinreichung_ki_logs', $logs);
+        wp_send_json_success();
+    }
+
+    wp_send_json_error('Ungültiger Index');
+});
+
 defined('ABSPATH') || exit;
 
 add_action('admin_enqueue_scripts', function ($hook) {
@@ -140,19 +143,20 @@ add_action('admin_enqueue_scripts', function ($hook) {
 });
 
 // 2. Formular anzeigen
-function beitragseinreichung_formular_anzeige() {
+function beitragseinreichung_formular_anzeige()
+{
     $excerpt_aktiv = get_option('beitragseinreichung_excerpt_aktiv', 1);
     $ki_global_aktiv = get_option('beitragseinreichung_ki_aktiv');
-    ?>
+?>
     <div class="wrap">
-        
+
         <picture id="beitragseinreichung-logo">
             <source srcset="<?php echo plugin_dir_url(__FILE__) . 'img/banner-small.png'; ?>" media="(max-width: 768px)">
             <img src="<?php echo plugin_dir_url(__FILE__) . 'img/banner-big.png'; ?>" alt="AI Beitragseinreichung Logo" style="width: 100%; max-width: 800px; height: auto;">
         </picture>
 
-        <?php if (isset($_GET['erfolg']) && isset($_GET['beitrag_id'])): 
-        $link = admin_url('post.php?post=' . (int) $_GET['beitrag_id'] . '&action=edit');
+        <?php if (isset($_GET['erfolg']) && isset($_GET['beitrag_id'])):
+            $link = admin_url('post.php?post=' . (int) $_GET['beitrag_id'] . '&action=edit');
         ?>
             <div class="notice notice-success">
                 <p>Beitrag erfolgreich eingereicht! <a href="<?php echo esc_url($link); ?>" target="_blank">Beitrag anzeigen &rarr;</a></p>
@@ -172,79 +176,84 @@ function beitragseinreichung_formular_anzeige() {
                     <td><textarea name="beitrag_inhalt" id="beitrag_inhalt" rows="16" class="large-text" required></textarea></td>
                 </tr>
                 <?php if ($excerpt_aktiv): ?>
-                <tr id="textauszug-zeile">
-                    <th><label for="beitrag_excerpt">Textauszug</label></th>
-                    <td>
-                        <textarea name="beitrag_excerpt" id="beitrag_excerpt" rows="3" class="large-text" placeholder="Kurze Lesevorschau (optional)"></textarea>
-                    </td>
-                </tr>
+                    <tr id="textauszug-zeile">
+                        <th><label for="beitrag_excerpt">Textauszug</label></th>
+                        <td>
+                            <textarea name="beitrag_excerpt" id="beitrag_excerpt" rows="3" class="large-text" placeholder="Kurze Lesevorschau (optional)"></textarea>
+                        </td>
+                    </tr>
                 <?php endif; ?>
                 <?php if ($ki_global_aktiv): ?>
-                <tr>
-                    <td colspan="2">
-                        <div class="ki-bereich">
-                            <label>
-                                <input type="checkbox" name="beitrag_ki_individuell" id="beitrag_ki_individuell" value="1">
-                                <strong>Texte automatisch verbessern</strong> (Empfohlen)
-                            </label>
-                            <p class="description">Wenn aktiviert, werden Titel und Inhalt dieses Beitrags stilistisch mit GPT-4 überarbeitet.</p>
-                            <?php if ($excerpt_aktiv): ?>
-                            <div id="ki-excerpt-option" style="margin-top: 10px; display: none;">
+                    <tr>
+                        <td colspan="2">
+                            <div class="ki-bereich">
                                 <label>
-                                <input type="checkbox" name="beitrag_excerpt_auto" id="beitrag_excerpt_auto" value="1" checked>
-                                <strong>Textauszug automatisch generieren</strong>
+                                    <input type="checkbox" name="beitrag_ki_individuell" id="beitrag_ki_individuell" value="1">
+                                    <strong>Texte automatisch verbessern</strong> (Empfohlen)
                                 </label>
-                                <p class="description">Ein kurzer Vorschautext wird automatisch aus dem Inhalt erstellt.</p>
+                                <p class="description">Wenn aktiviert, werden Titel und Inhalt dieses Beitrags stilistisch mit GPT-4 überarbeitet.</p>
+                                <?php if ($excerpt_aktiv): ?>
+                                    <div id="ki-excerpt-option" style="margin-top: 10px; display: none;">
+                                        <label>
+                                            <input type="checkbox" name="beitrag_excerpt_auto" id="beitrag_excerpt_auto" value="1" checked>
+                                            <strong>Textauszug automatisch generieren</strong>
+                                        </label>
+                                        <p class="description">Ein kurzer Vorschautext wird automatisch aus dem Inhalt erstellt.</p>
+                                    </div>
+                                <?php endif; ?>
+                                <div id="ki-optionen-container" style="display: none;">
+                                    <p><label for="beitrag_ki_stilgruppe">Stil der Ausgabe <span class="required">*</span></label><br>
+                                        <select name="beitrag_ki_stilgruppe" id="beitrag_ki_stilgruppe">
+                                            <option value="">– Stil auswählen –</option>
+                                            <?php
+                                            $stilgruppen = get_option('beitragseinreichung_ki_stilgruppen', []);
+                                            foreach ($stilgruppen as $gruppe) {
+                                                $ziel = isset($gruppe['ziel']) ? $gruppe['ziel'] : '';
+                                                echo '<option value="' . esc_attr($gruppe['label']) . '" title="' . esc_attr($ziel) . '">' . esc_html($gruppe['label']) . '</option>';
+                                            }
+                                            ?>
+                                        </select>
+                                    <p id="stilgruppe-zieltext" style="font-size:0.9em; color:#900000;"></p>
+                                    </p>
+                                    <p>
+                                        <label for="beitrag_ki_hinweis">Zusätzliche Hinweise für die KI (optional)</label><br>
+                                        <textarea name="beitrag_ki_hinweis" id="beitrag_ki_hinweis" rows="3" class="large-text" placeholder="Optional: Bei besonderen zusätzlichen Stilwünschen oder Hinweisen."></textarea>
+                                    </p>
+                                </div>
                             </div>
-                            <?php endif; ?>
-                            <div id="ki-optionen-container" style="display: none;">
-                                <p><label for="beitrag_ki_stilgruppe">Stil der Ausgabe <span class="required">*</span></label><br>
-                                <select name="beitrag_ki_stilgruppe" id="beitrag_ki_stilgruppe">
-                                    <option value="">– Stil auswählen –</option>
-                                    <?php
-                                    $stilgruppen = get_option('beitragseinreichung_ki_stilgruppen', []);
-                                    foreach ($stilgruppen as $gruppe) {
-                                        $ziel = isset($gruppe['ziel']) ? $gruppe['ziel'] : '';
-                                        echo '<option value="' . esc_attr($gruppe['label']) . '" title="' . esc_attr($ziel) . '">' . esc_html($gruppe['label']) . '</option>';
-                                    }
-                                    ?>
-                                </select>
-                                <p id="stilgruppe-zieltext" style="font-size:0.9em; color:#900000;"></p>
-                                </p>
-                                <p>
-                                <label for="beitrag_ki_hinweis">Zusätzliche Hinweise für die KI (optional)</label><br>
-                                <textarea name="beitrag_ki_hinweis" id="beitrag_ki_hinweis" rows="3" class="large-text" placeholder="Optional: Bei besonderen zusätzlichen Stilwünschen oder Hinweisen."></textarea>
-                                </p>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
+                        </td>
+                    </tr>
 
-                </tbody>
+                    </tbody>
                 <?php endif; ?>
                 <tr>
                     <th><label for="beitrag_tags">Schlagwörter <span class="required">*</span></label></th>
-                    <td><input type="text" name="beitrag_tags" id="beitrag_tags" class="regular-text" placeholder="z.B. Mittelstrecke, Bad Kreuznach, 2025"></td>
+                    <td>
+                        <input type="text" name="beitrag_tags" id="beitrag_tags" class="regular-text" placeholder="z.B. Marathon, Bad Kreuznach, 2025">
+                        <p id="tag-hinweis" style="display:none; color:#a00; font-size:0.9em; margin-top:6px;">
+                            ⚠️ Bitte trenne mehrere Schlagwörter durch Kommata – z. B. <em>2025, Outdoor Sport, Frankfurt</em>
+                        </p>
+                    </td>
                 </tr>
                 <tr>
-                <th><label for="beitrag_kategorie">Kategorie <span class="required">*</span></label></th>
-                <td>
-                    <select name="beitrag_kategorie" id="beitrag_kategorie">
-                        <?php
-                        $kategorien = get_categories(['hide_empty' => false]);
-                        $standard_ids = get_option('beitragseinreichung_standard_kategorien', []);
-                        $standard_id = is_array($standard_ids) && count($standard_ids) > 0 ? $standard_ids[0] : null;
+                    <th><label for="beitrag_kategorie">Kategorie <span class="required">*</span></label></th>
+                    <td>
+                        <select name="beitrag_kategorie" id="beitrag_kategorie">
+                            <?php
+                            $kategorien = get_categories(['hide_empty' => false]);
+                            $standard_ids = get_option('beitragseinreichung_standard_kategorien', []);
+                            $standard_id = is_array($standard_ids) && count($standard_ids) > 0 ? $standard_ids[0] : null;
 
-                        foreach ($kategorien as $kategorie) {
-                            $selected = ($kategorie->term_id == $standard_id) ? 'selected' : '';
-                            echo '<option value="' . esc_attr($kategorie->term_id) . '" ' . $selected . '>' . esc_html($kategorie->name) . '</option>';
-                        }
-                        ?>
-                    </select>
-                </td>
+                            foreach ($kategorien as $kategorie) {
+                                $selected = ($kategorie->term_id == $standard_id) ? 'selected' : '';
+                                echo '<option value="' . esc_attr($kategorie->term_id) . '" ' . $selected . '>' . esc_html($kategorie->name) . '</option>';
+                            }
+                            ?>
+                        </select>
+                    </td>
                 </tr>
                 <tr>
-                <th>Beitragsbild</th>
+                    <th>Beitragsbild</th>
                     <td>
                         <button id="select_beitragsbild" class="button">Beitragsbild auswählen</button><br><br>
                         <div id="beitragsbild_preview"></div>
@@ -258,27 +267,27 @@ function beitragseinreichung_formular_anzeige() {
                         <div id="gallery_preview"></div>
                         <input type="hidden" name="gallery_ids" id="gallery_ids" value="">
                     </td>
-            </tr>
+                </tr>
 
             </table>
 
             <?php submit_button('Beitrag einreichen'); ?>
             <div id="submit-loader" style="display:none;">
-            <div class="submit-loader-inner">
-                <div class="submit-loader-bar"></div>
-                <p>Dein Beitrag wird verarbeitet …</p>
-            </div>
+                <div class="submit-loader-inner">
+                    <div class="submit-loader-bar"></div>
+                    <p>Dein Beitrag wird verarbeitet …</p>
+                </div>
             </div>
             <div id="lottie-loader" style="display: none;">
-            <lottie-player
-                src="<?php echo plugin_dir_url(__FILE__) . 'assets/lottie/ki-animation.json'; ?>"
-                background="transparent"
-                speed="1"
-                style="max-width: 35vw; height: auto;"
-                loop
-                autoplay>
-            </lottie-player>
-            <p style="margin-top: 1em; font-size: 1.2em;">⏳ Dein Beitrag wird eingereicht...</p>
+                <lottie-player
+                    src="<?php echo plugin_dir_url(__FILE__) . 'assets/lottie/ki-animation.json'; ?>"
+                    background="transparent"
+                    speed="1"
+                    style="max-width: 35vw; height: auto;"
+                    loop
+                    autoplay>
+                </lottie-player>
+                <p style="margin-top: 1em; font-size: 1.2em;">⏳ Dein Beitrag wird eingereicht...</p>
             </div>
         </form>
         <p style="margin-top: 40px; font-size: 0.95em;">
@@ -288,7 +297,7 @@ function beitragseinreichung_formular_anzeige() {
         </p>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const select = document.getElementById('beitrag_ki_stilgruppe');
             const zielAnzeigen = document.getElementById('stilgruppe-zieltext');
 
@@ -307,8 +316,29 @@ function beitragseinreichung_formular_anzeige() {
             select.addEventListener('change', updateZieltext);
             updateZieltext();
         });
+        document.addEventListener('DOMContentLoaded', function() {
+            const tagInput = document.getElementById('beitrag_tags');
+            const hinweis = document.getElementById('tag-hinweis');
+
+            function triggerCheck() {
+                const val = tagInput.value.trim();
+                const hasMultipleWords = val.split(' ').length >= 2;
+                const hasComma = val.includes(',');
+
+                if (hasMultipleWords && !hasComma) {
+                    hinweis.style.display = 'block';
+                } else {
+                    hinweis.style.display = 'none';
+                }
+            }
+
+            if (tagInput) {
+                tagInput.addEventListener('input', triggerCheck);
+                triggerCheck(); // Initial prüfen
+            }
+        });
     </script>
-    <?php
+<?php
 }
 
 // 3. Formular verarbeiten
@@ -335,7 +365,7 @@ add_action('admin_init', function () {
             $original_titel = $titel;
             $original_inhalt = $inhalt;
             // Modell vorher festlegen
-             $modell = get_option('beitragseinreichung_ki_modell', 'gpt-4-turbo');
+            $modell = get_option('beitragseinreichung_ki_modell', 'gpt-4-turbo');
             // Überarbeiten mit GPT-4
             $zusatz = sanitize_textarea_field($_POST['beitrag_ki_hinweis'] ?? '');
             // Immer initialisieren, damit sie später verfügbar ist
@@ -351,7 +381,7 @@ add_action('admin_init', function () {
 
                 $titel = beitrag_ki_verbessere_text($titel, 'Beitragstitel', $modell, $zusatz);
                 $inhalt = beitrag_ki_verbessere_text($inhalt, 'Beitragstext', $modell, $zusatz);
-            }                   
+            }
         }
 
         // Beitrag anlegen
@@ -438,7 +468,7 @@ add_action('admin_init', function () {
             if (!empty($emails)) {
                 $ki_info = $ki_aktiv ? 'Ja' : 'Nein';
                 $modell_info = $ki_aktiv ? $modell : '–';
-            
+
                 $mail_html = '<html><body>';
                 $mail_html .= '<h2>Ein neuer Beitrag wurde eingereicht</h2>';
                 $mail_html .= '<p><strong>Titel:</strong> ' . esc_html($titel) . '</p>';
@@ -448,10 +478,10 @@ add_action('admin_init', function () {
                 $mail_html .= '<strong>Verwendetes Modell:</strong> ' . esc_html($modell_info) . '</p>';
                 if (!empty($zusatz)) {
                     $mail_html .= '<p><strong>KI-Hinweise:</strong><br>' . nl2br(esc_html($zusatz)) . '</p>';
-                }                
+                }
                 $mail_html .= '<p><a href="' . esc_url(get_edit_post_link($beitrag_id)) . '">Beitrag jetzt prüfen &rarr;</a></p>';
                 $mail_html .= '</body></html>';
-            
+
                 wp_mail(
                     $emails,
                     '📝 Neuer Beitrag: ' . $titel,
@@ -459,21 +489,21 @@ add_action('admin_init', function () {
                     ['Content-Type: text/html; charset=UTF-8']
                 );
             }
-            
+
             if ($ki_aktiv && !is_wp_error($beitrag_id)) {
                 beitrag_ki_log_speichern(
-                $beitrag_id,
-                get_current_user_id(),
-                $original_titel,
-                $titel,
-                $original_inhalt,
-                $inhalt,
-                $modell,
-                $zusatz,
-                $stilgruppe_label
-            );
+                    $beitrag_id,
+                    get_current_user_id(),
+                    $original_titel,
+                    $titel,
+                    $original_inhalt,
+                    $inhalt,
+                    $modell,
+                    $zusatz,
+                    $stilgruppe_label
+                );
             }
-            
+
             // Weiterleitung
             if ($beitrag_ki_fehler) {
                 wp_redirect(admin_url('admin.php?page=beitragseinreichung&erfolg=0&fehler=1'));
@@ -485,12 +515,14 @@ add_action('admin_init', function () {
     }
 });
 
-function remove_emojis($string) {
+function remove_emojis($string)
+{
     return preg_replace('/[\x{1F600}-\x{1F64F}|\x{1F300}-\x{1F5FF}|\x{1F680}-\x{1F6FF}|\x{2600}-\x{26FF}|\x{2700}-\x{27BF}]+/u', '', $string);
 }
 
 // KI-Textverbesserung über OpenAI GPT-4
-function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', $modell = 'gpt-4-turbo', $zusatz = '') {
+function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', $modell = 'gpt-4-turbo', $zusatz = '')
+{
     global $beitrag_ki_fehler; // NEU
 
     $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
@@ -500,8 +532,21 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
     }
 
     $grundstil = get_option('beitragseinreichung_ki_stil', '');
-    $stilgruppe = !empty($_POST['beitrag_ki_stilgruppe']) ? sanitize_text_field($_POST['beitrag_ki_stilgruppe']) : '';
-    $stil = trim($stilgruppe . ( $grundstil ? ', ' . $grundstil : ''));
+    $stilgruppe_label = !empty($_POST['beitrag_ki_stilgruppe']) ? sanitize_text_field($_POST['beitrag_ki_stilgruppe']) : '';
+    $stilgruppen = get_option('beitragseinreichung_ki_stilgruppen', []);
+    $stilbeschreibung = '';
+
+    // passende Stilbeschreibung auslesen
+    foreach ($stilgruppen as $gruppe) {
+        if (isset($gruppe['label']) && $gruppe['label'] === $stilgruppe_label) {
+            $stilbeschreibung = trim($gruppe['stil'] ?? '');
+            break;
+        }
+    }
+
+    // Prompt-Stil zusammensetzen
+    $stil = trim($stilbeschreibung . ($grundstil ? "\n\n" . $grundstil : ''));
+
 
     if (stripos($ziel, 'Textauszug') !== false) {
         $temperature = 0.4;
@@ -548,26 +593,26 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
             'Authorization' => 'Bearer ' . $api_key,
         ],
         'body' => $request_body,
-        'timeout' => 30,
+        'timeout' => 90,
     ]);
 
     if (is_wp_error($response)) {
         $beitrag_ki_fehler = true;
         error_log('OpenAI Fehler: ' . $response->get_error_message());
-    
+
         // Admin benachrichtigen
         beitrag_ki_admin_benachrichtigen('Fehler: ' . $response->get_error_message());
-    
+
         return $text;
     }
-    
+
     $body = json_decode(wp_remote_retrieve_body($response), true);
     if (!isset($body['choices'][0]['message']['content'])) {
         $beitrag_ki_fehler = true;
-    
+
         // Admin benachrichtigen
         beitrag_ki_admin_benachrichtigen('Antwort unvollständig oder ungültig.');
-    
+
         return $text;
     }
 
@@ -576,7 +621,8 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
 }
 
 
-function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimierter_titel, $original_inhalt, $optimierter_inhalt, $modell, $zusatz, $stilgruppe = '') {
+function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimierter_titel, $original_inhalt, $optimierter_inhalt, $modell, $zusatz, $stilgruppe = '')
+{
     $logs = get_option('beitragseinreichung_ki_logs', []);
     $logs[] = [
         'zeit' => current_time('mysql'),
@@ -613,14 +659,14 @@ add_action('admin_footer', function () {
     echo '<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>';
     $screen = get_current_screen();
     if ($screen->id !== 'toplevel_page_beitragseinreichung') return;
-    ?>
+?>
     <script>
-        jQuery(document).ready(function ($) {
+        jQuery(document).ready(function($) {
             let frame_featured, frame_gallery;
 
             // Stilgruppe + KI-Hinweise nur anzeigen, wenn Checkbox aktiv
-            $('#beitrag_ki_individuell').on('change', function () {
-            // Textauszug automatisch generieren ein-/ausblenden
+            $('#beitrag_ki_individuell').on('change', function() {
+                // Textauszug automatisch generieren ein-/ausblenden
                 if ($(this).is(':checked')) {
                     $('#ki-excerpt-option').show();
                     $('#beitrag_excerpt_auto').prop('checked', true);
@@ -660,7 +706,7 @@ add_action('admin_footer', function () {
                 $('#ki-optionen-container').show();
             }
             // Media Picker für Beitragsbild
-            $('#select_beitragsbild').on('click', function (e) {
+            $('#select_beitragsbild').on('click', function(e) {
                 e.preventDefault();
                 if (frame_featured) {
                     frame_featured.open();
@@ -668,11 +714,13 @@ add_action('admin_footer', function () {
                 }
                 frame_featured = wp.media({
                     title: 'Beitragsbild auswählen',
-                    button: { text: 'Bild verwenden' },
+                    button: {
+                        text: 'Bild verwenden'
+                    },
                     multiple: false
                 });
 
-                frame_featured.on('select', function () {
+                frame_featured.on('select', function() {
                     const attachment = frame_featured.state().get('selection').first().toJSON();
                     $('#beitragsbild_id').val(attachment.id);
                     $('#beitragsbild_preview').html('<img src="' + attachment.sizes.thumbnail.url + '" style="max-width:150px;">');
@@ -682,7 +730,7 @@ add_action('admin_footer', function () {
             });
 
             // Media Picker für Galerie
-            $('#select_gallery').on('click', function (e) {
+            $('#select_gallery').on('click', function(e) {
                 e.preventDefault();
                 if (frame_gallery) {
                     frame_gallery.open();
@@ -690,11 +738,13 @@ add_action('admin_footer', function () {
                 }
                 frame_gallery = wp.media({
                     title: 'Zusätzliche Bilder auswählen',
-                    button: { text: 'Bilder hinzufügen' },
+                    button: {
+                        text: 'Bilder hinzufügen'
+                    },
                     multiple: true
                 });
 
-                frame_gallery.on('select', function () {
+                frame_gallery.on('select', function() {
                     const attachments = frame_gallery.state().get('selection').toJSON();
                     const ids = attachments.map(att => att.id).join(',');
                     $('#gallery_ids').val(ids);
@@ -709,7 +759,7 @@ add_action('admin_footer', function () {
             });
 
             // Bestätigung vor Absenden – mit Warnung bei fehlendem Bild
-            $(document).on('submit', '#beitragseinreichung-formular', function (e) {
+            $(document).on('submit', '#beitragseinreichung-formular', function(e) {
                 if ($('#beitrag_ki_individuell').is(':checked') && !$('#beitrag_ki_stilgruppe').val()) {
                     alert('Bitte wähle einen Stil aus der Liste.');
                     e.preventDefault();
@@ -735,7 +785,7 @@ add_action('admin_footer', function () {
                 }
                 if (!confirm(message)) {
                     e.preventDefault();
-                    return; 
+                    return;
                 }
                 // Nur passenden Loader anzeigen
                 if ($('#beitrag_ki_individuell').is(':checked')) {
@@ -854,13 +904,14 @@ add_action('admin_footer', function () {
             });
         });
     </script>
-    <?php
+<?php
 });
 
-  
+
 // 7. Anzeige und Verarbeitung der Einstellungen
 
-function beitragseinreichung_einstellungen_anzeige() {
+function beitragseinreichung_einstellungen_anzeige()
+{
     $ist_admin = current_user_can('beitragseinreichung_admin');
     if (isset($_POST['beitrag_einstellungen_nonce']) && wp_verify_nonce($_POST['beitrag_einstellungen_nonce'], 'speichern_beitrag_einstellungen')) {
         $kategorie = isset($_POST['standard_kategorie']) ? [(int) $_POST['standard_kategorie']] : [];
@@ -891,7 +942,7 @@ function beitragseinreichung_einstellungen_anzeige() {
         if (!defined('OPENAI_API_KEY') && isset($_POST['beitragseinreichung_api_key'])) {
             $key = trim(sanitize_text_field($_POST['beitragseinreichung_api_key']));
             update_option('beitragseinreichung_api_key', $key);
-        }        
+        }
         $excerpt_aktiv = isset($_POST['beitragseinreichung_excerpt_aktiv']) ? (int) $_POST['beitragseinreichung_excerpt_aktiv'] : 1;
         update_option('beitragseinreichung_excerpt_aktiv', $excerpt_aktiv);
         update_option('beitragseinreichung_ki_stil', $ki_stil);
@@ -901,7 +952,6 @@ function beitragseinreichung_einstellungen_anzeige() {
         echo '<div class="updated"><p>Einstellungen gespeichert.</p></div>';
         // Verbindung testen nach dem Speichern
         beitragseinreichung_test_openai_verbindung();
-
     }
 
     $standard_ids = get_option('beitragseinreichung_standard_kategorien', []);
@@ -909,7 +959,7 @@ function beitragseinreichung_einstellungen_anzeige() {
 
     $kategorien = get_categories(['hide_empty' => false]);
     $nutzer = get_users(['fields' => ['ID', 'display_name', 'user_email']]);
-    ?>
+?>
     <div class="wrap">
         <h1>Beitragseinreichung – Einstellungen</h1>
         <form method="post">
@@ -931,21 +981,21 @@ function beitragseinreichung_einstellungen_anzeige() {
                     </td>
                 </tr>
                 <?php if ($ist_admin): ?>
-                <tr>
-                    <th scope="row"><label for="empfaenger_user_ids">Benachrichtigungs-Empfänger</label></th>
-                    <td>
-                        <div style="max-height: 250px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
-                            <?php foreach ($nutzer as $nutzer_obj): ?>
-                                <label style="display: block; margin-bottom: 8px;">
-                                    <input type="checkbox" name="empfaenger_user_ids[]" value="<?php echo esc_attr($nutzer_obj->ID); ?>"
-                                        <?php checked(in_array($nutzer_obj->ID, $user_ids)); ?>>
-                                    <?php echo esc_html($nutzer_obj->display_name . ' (' . $nutzer_obj->user_email . ')'); ?>
-                                </label>
-                            <?php endforeach; ?>
-                        </div>
-                        <p class="description">Wähle einen oder mehrere Benutzer aus, die bei neuen Beiträgen benachrichtigt werden sollen.</p>
-                    </td>
-                </tr>
+                    <tr>
+                        <th scope="row"><label for="empfaenger_user_ids">Benachrichtigungs-Empfänger</label></th>
+                        <td>
+                            <div style="max-height: 250px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+                                <?php foreach ($nutzer as $nutzer_obj): ?>
+                                    <label style="display: block; margin-bottom: 8px;">
+                                        <input type="checkbox" name="empfaenger_user_ids[]" value="<?php echo esc_attr($nutzer_obj->ID); ?>"
+                                            <?php checked(in_array($nutzer_obj->ID, $user_ids)); ?>>
+                                        <?php echo esc_html($nutzer_obj->display_name . ' (' . $nutzer_obj->user_email . ')'); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                            <p class="description">Wähle einen oder mehrere Benutzer aus, die bei neuen Beiträgen benachrichtigt werden sollen.</p>
+                        </td>
+                    </tr>
                 <?php endif; ?>
                 <tr>
                     <th scope="row"><label for="beitragseinreichung_autor_notify">Autor Benachrichtigungsmail senden</label></th>
@@ -962,8 +1012,8 @@ function beitragseinreichung_einstellungen_anzeige() {
                     <th scope="row"><label for="beitragseinreichung_excerpt_aktiv">Textvorschau (Textauszug)</label></th>
                     <td>
                         <select name="beitragseinreichung_excerpt_aktiv"
-                                id="beitragseinreichung_excerpt_aktiv"
-                                <?php echo $ist_admin ? '' : 'disabled'; ?>>
+                            id="beitragseinreichung_excerpt_aktiv"
+                            <?php echo $ist_admin ? '' : 'disabled'; ?>>
                             <option value="1" <?php selected(get_option('beitragseinreichung_excerpt_aktiv'), 1); ?>>Aktiviert</option>
                             <option value="0" <?php selected(get_option('beitragseinreichung_excerpt_aktiv'), 0); ?>>Deaktiviert</option>
                         </select>
@@ -973,14 +1023,14 @@ function beitragseinreichung_einstellungen_anzeige() {
                 <tr>
                     <th scope="row"><label for="beitragseinreichung_ki_aktiv">KI aktivieren</label></th>
                     <td>
-                    <?php
-                    $status = get_option('beitragseinreichung_api_status');
-                    $key_valid = $status && $status['status'] === 'erfolgreich';
-                    ?>
-                    <select name="beitragseinreichung_ki_aktiv"
-                    id="beitragseinreichung_ki_aktiv"
-                    <?php echo ($ist_admin && $key_valid) ? '' : 'disabled'; ?>
-                    title="<?php echo esc_attr($key_valid ? 'Nur Admins dürfen diese Einstellung ändern.' : 'Ein gültiger API-Key ist erforderlich.'); ?>">
+                        <?php
+                        $status = get_option('beitragseinreichung_api_status');
+                        $key_valid = $status && $status['status'] === 'erfolgreich';
+                        ?>
+                        <select name="beitragseinreichung_ki_aktiv"
+                            id="beitragseinreichung_ki_aktiv"
+                            <?php echo ($ist_admin && $key_valid) ? '' : 'disabled'; ?>
+                            title="<?php echo esc_attr($key_valid ? 'Nur Admins dürfen diese Einstellung ändern.' : 'Ein gültiger API-Key ist erforderlich.'); ?>">
                             <option value="0" <?php selected(get_option('beitragseinreichung_ki_aktiv'), 0); ?>>Deaktiviert</option>
                             <option value="1" <?php selected(get_option('beitragseinreichung_ki_aktiv'), 1); ?>>Aktiviert</option>
                         </select>
@@ -1011,122 +1061,130 @@ function beitragseinreichung_einstellungen_anzeige() {
                     </td>
                 </tr>
                 <script>
-                document.addEventListener('DOMContentLoaded', function () {
-                    const stilgruppen = <?php echo json_encode(get_option('beitragseinreichung_ki_stilgruppen', [])); ?>;
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const stilgruppen = <?php echo json_encode(get_option('beitragseinreichung_ki_stilgruppen', [])); ?>;
 
-                    const auswahl = document.getElementById('stilgruppe-auswahl');
-                    const editor = document.getElementById('stilgruppe-editor');
-                    const inputLabel = document.getElementById('stilgruppe-label');
-                    const inputStil = document.getElementById('stilgruppe-stil');
-                    const speichernBtn = document.getElementById('stilgruppe-speichern');
-                    const loeschenBtn = document.getElementById('stilgruppe-loeschen');
-                    const neueBtn = document.getElementById('neue-stilgruppe');
+                        const auswahl = document.getElementById('stilgruppe-auswahl');
+                        const editor = document.getElementById('stilgruppe-editor');
+                        const inputLabel = document.getElementById('stilgruppe-label');
+                        const inputStil = document.getElementById('stilgruppe-stil');
+                        const speichernBtn = document.getElementById('stilgruppe-speichern');
+                        const loeschenBtn = document.getElementById('stilgruppe-loeschen');
+                        const neueBtn = document.getElementById('neue-stilgruppe');
 
-                    function updateDropdown() {
-                        auswahl.innerHTML = '<option value="">-- Stilgruppe auswählen --</option>';
-                        stilgruppen.forEach((gruppe, index) => {
-                            const option = document.createElement('option');
-                            option.value = index;
-                            option.textContent = gruppe.label;
-                            auswahl.appendChild(option);
-                        });
-                    }
-
-                    function showEditor(index = null) {
-                        editor.style.display = 'block';
-                        if (index === null) {
-                            auswahl.value = '';
-                            inputLabel.value = '';
-                            inputStil.value = '';
-                            document.getElementById('stilgruppe-ziel').value = '';
-                            editor.dataset.index = '';
-                        } else {
-                            const gruppe = stilgruppen[index];
-                            inputLabel.value = gruppe.label;
-                            inputStil.value = gruppe.stil;
-                            document.getElementById('stilgruppe-ziel').value = gruppe.ziel || '';
-                            editor.dataset.index = index;
+                        function updateDropdown() {
+                            auswahl.innerHTML = '<option value="">-- Stilgruppe auswählen --</option>';
+                            stilgruppen.forEach((gruppe, index) => {
+                                const option = document.createElement('option');
+                                option.value = index;
+                                option.textContent = gruppe.label;
+                                auswahl.appendChild(option);
+                            });
                         }
 
-                        // Hinweistext einfügen
-                        editor.querySelectorAll('p.stilgruppe-hinweis').forEach(p => p.remove());
-                        document.getElementById('stilgruppe-ziel').insertAdjacentHTML('afterend', `
+                        function showEditor(index = null) {
+                            editor.style.display = 'block';
+                            if (index === null) {
+                                auswahl.value = '';
+                                inputLabel.value = '';
+                                inputStil.value = '';
+                                document.getElementById('stilgruppe-ziel').value = '';
+                                editor.dataset.index = '';
+                            } else {
+                                const gruppe = stilgruppen[index];
+                                inputLabel.value = gruppe.label;
+                                inputStil.value = gruppe.stil;
+                                document.getElementById('stilgruppe-ziel').value = gruppe.ziel || '';
+                                editor.dataset.index = index;
+                            }
+
+                            // Hinweistext einfügen
+                            editor.querySelectorAll('p.stilgruppe-hinweis').forEach(p => p.remove());
+                            document.getElementById('stilgruppe-ziel').insertAdjacentHTML('afterend', `
                             <p class="stilgruppe-hinweis" style="color: #666; font-size: 0.85em; margin-top: 8px;">
                                 💡 Denk nach dem lokalen Speichern der Stilgruppe daran, auch unten auf <strong>„Einstellungen speichern“</strong> zu klicken!
                             </p>
                         `);
-                    }
-
-
-                    auswahl.addEventListener('change', () => {
-                        const index = auswahl.value;
-                        if (index !== '') {
-                            showEditor(parseInt(index));
-                        } else {
-                            editor.style.display = 'none';
                         }
-                    });
 
-                    neueBtn.addEventListener('click', () => showEditor(null));
 
-                    speichernBtn.addEventListener('click', () => {
-                        const label = inputLabel.value.trim();
-                        const stil = inputStil.value.trim();
-                        const ziel = document.getElementById('stilgruppe-ziel').value.trim();
-                        if (!label || !stil) return alert('Bitte fülle beide Felder aus.');
-
-                        const index = editor.dataset.index;
-                        if (index === '') {
-                            stilgruppen.push({ label, stil, ziel });
-                        } else {
-                            stilgruppen[index] = { label, stil, ziel };
-                        }
-                        updateDropdown();
-                        auswahl.value = '';
-                        editor.style.display = 'none';
-                        syncHiddenInputs();
-                    });
-
-                    loeschenBtn.addEventListener('click', () => {
-                        const index = parseInt(editor.dataset.index);
-                        if (!Number.isInteger(index)) return;
-                        if (!confirm('Wirklich löschen?')) return;
-
-                        stilgruppen.splice(index, 1);
-                        updateDropdown();
-                        auswahl.value = '';
-                        editor.style.display = 'none';
-                        syncHiddenInputs();
-                    });
-
-                    function syncHiddenInputs() {
-                        const form = auswahl.closest('form');
-                        form.querySelectorAll('input[name="stilgruppe_label[]"], input[name="stilgruppe_stil[]"], input[name="stilgruppe_ziel[]"]').forEach(el => el.remove());
-                        stilgruppen.forEach(gruppe => {
-                            const input1 = document.createElement('input');
-                            input1.type = 'hidden';
-                            input1.name = 'stilgruppe_label[]';
-                            input1.value = gruppe.label;
-                            form.appendChild(input1);
-                            const input2 = document.createElement('input');
-                            input2.type = 'hidden';
-                            input2.name = 'stilgruppe_stil[]';
-                            input2.value = gruppe.stil;
-                            form.appendChild(input2);
-                            const input3 = document.createElement('input');
-                            input3.type = 'hidden';
-                            input3.name = 'stilgruppe_ziel[]';
-                            input3.value = gruppe.ziel || '';
-                            form.appendChild(input3);
+                        auswahl.addEventListener('change', () => {
+                            const index = auswahl.value;
+                            if (index !== '') {
+                                showEditor(parseInt(index));
+                            } else {
+                                editor.style.display = 'none';
+                            }
                         });
-                    }
 
-                    updateDropdown();
-                    syncHiddenInputs();
-                });
+                        neueBtn.addEventListener('click', () => showEditor(null));
+
+                        speichernBtn.addEventListener('click', () => {
+                            const label = inputLabel.value.trim();
+                            const stil = inputStil.value.trim();
+                            const ziel = document.getElementById('stilgruppe-ziel').value.trim();
+                            if (!label || !stil) return alert('Bitte fülle beide Felder aus.');
+
+                            const index = editor.dataset.index;
+                            if (index === '') {
+                                stilgruppen.push({
+                                    label,
+                                    stil,
+                                    ziel
+                                });
+                            } else {
+                                stilgruppen[index] = {
+                                    label,
+                                    stil,
+                                    ziel
+                                };
+                            }
+                            updateDropdown();
+                            auswahl.value = '';
+                            editor.style.display = 'none';
+                            syncHiddenInputs();
+                        });
+
+                        loeschenBtn.addEventListener('click', () => {
+                            const index = parseInt(editor.dataset.index);
+                            if (!Number.isInteger(index)) return;
+                            if (!confirm('Wirklich löschen?')) return;
+
+                            stilgruppen.splice(index, 1);
+                            updateDropdown();
+                            auswahl.value = '';
+                            editor.style.display = 'none';
+                            syncHiddenInputs();
+                        });
+
+                        function syncHiddenInputs() {
+                            const form = auswahl.closest('form');
+                            form.querySelectorAll('input[name="stilgruppe_label[]"], input[name="stilgruppe_stil[]"], input[name="stilgruppe_ziel[]"]').forEach(el => el.remove());
+                            stilgruppen.forEach(gruppe => {
+                                const input1 = document.createElement('input');
+                                input1.type = 'hidden';
+                                input1.name = 'stilgruppe_label[]';
+                                input1.value = gruppe.label;
+                                form.appendChild(input1);
+                                const input2 = document.createElement('input');
+                                input2.type = 'hidden';
+                                input2.name = 'stilgruppe_stil[]';
+                                input2.value = gruppe.stil;
+                                form.appendChild(input2);
+                                const input3 = document.createElement('input');
+                                input3.type = 'hidden';
+                                input3.name = 'stilgruppe_ziel[]';
+                                input3.value = gruppe.ziel || '';
+                                form.appendChild(input3);
+                            });
+                        }
+
+                        updateDropdown();
+                        syncHiddenInputs();
+                    });
                 </script>
                 <tr>
-                <th scope="row"><label for="beitragseinreichung_ki_stil">Grundstil (wird an jede Stilvorgabe angehängt)</label></th>
+                    <th scope="row"><label for="beitragseinreichung_ki_stil">Grundstil (wird an jede Stilvorgabe angehängt)</label></th>
                     <td>
                         <input type="text" name="beitragseinreichung_ki_stil" id="beitragseinreichung_ki_stil" class="regular-text" value="<?php echo esc_attr(get_option('beitragseinreichung_ki_stil', '')); ?>">
                         <p class="description">Dieser Stil wird automatisch an jede ausgewählte Stilvorgabe angehängt. Beispiel: „freundlich, sachlich, duzend“</p>
@@ -1135,10 +1193,10 @@ function beitragseinreichung_einstellungen_anzeige() {
                 <tr>
                     <th scope="row"><label for="beitragseinreichung_ki_modell">Modell</label></th>
                     <td>
-                    <select name="beitragseinreichung_ki_modell"
-                    id="beitragseinreichung_ki_modell"
-                    <?php echo $ist_admin ? '' : 'disabled'; ?>
-                    title="<?php echo esc_attr('Nur Admins können das Modell ändern.'); ?>">
+                        <select name="beitragseinreichung_ki_modell"
+                            id="beitragseinreichung_ki_modell"
+                            <?php echo $ist_admin ? '' : 'disabled'; ?>
+                            title="<?php echo esc_attr('Nur Admins können das Modell ändern.'); ?>">
                             <?php
                             $modelle = [
                                 'gpt-4-turbo' => 'GPT-4 Turbo (schneller, günstiger, aktuelle Version)',
@@ -1167,24 +1225,24 @@ function beitragseinreichung_einstellungen_anzeige() {
                         <?php if (defined('OPENAI_API_KEY')): ?>
                             <input type="text" value="(aus wp-config.php)" disabled class="regular-text">
                             <p class="description">Der API-Key wird aktuell aus der Konfiguration geladen.</p>
-                        <?php else: 
+                        <?php else:
                             $saved_key = get_option('beitragseinreichung_api_key');
                         ?>
                             <input type="password"
-                            name="beitragseinreichung_api_key"
-                            id="beitragseinreichung_api_key"
-                            class="regular-text"
-                            value="<?php echo esc_attr(str_repeat('*', strlen($saved_key))); ?>"
-                            <?php echo $ist_admin ? '' : 'disabled'; ?>
-                            title="<?php echo esc_attr('Nur Admins können diesen API-Key bearbeiten.'); ?>">
+                                name="beitragseinreichung_api_key"
+                                id="beitragseinreichung_api_key"
+                                class="regular-text"
+                                value="<?php echo esc_attr(str_repeat('*', strlen($saved_key))); ?>"
+                                <?php echo $ist_admin ? '' : 'disabled'; ?>
+                                title="<?php echo esc_attr('Nur Admins können diesen API-Key bearbeiten.'); ?>">
                             <p class="description">Hier kannst du deinen OpenAI-API-Key sicher hinterlegen. Der Key wird nicht im Klartext angezeigt.</p>
                         <?php endif; ?>
                     </td>
                 </tr>
                 <tr>
-                <th scope="row">API-Verbindungsstatus</th>
+                    <th scope="row">API-Verbindungsstatus</th>
                     <td>
-                        <?php 
+                        <?php
                         $status = get_option('beitragseinreichung_api_status');
                         if (!$status) {
                             echo '<p><span style="color:gray;">Noch keine Verbindung getestet.</span></p>';
@@ -1215,92 +1273,93 @@ function beitragseinreichung_einstellungen_anzeige() {
             </a>
         </p>
         <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const modellSelect = document.getElementById('beitragseinreichung_ki_modell');
-            const hinweisFeld = document.getElementById('ki-hinweis-modell');
+            document.addEventListener('DOMContentLoaded', function() {
+                const modellSelect = document.getElementById('beitragseinreichung_ki_modell');
+                const hinweisFeld = document.getElementById('ki-hinweis-modell');
 
-            const hinweise = {
-                'gpt-4-turbo': 'GPT-4 Turbo – schnell, aktuell, günstig (ca. 1–2 Cent pro Beitrag)',
-                'gpt-4': 'GPT-4 – leistungsstark, aber teurer (ca. 4–8 Cent pro Beitrag)',
-                'gpt-3.5-turbo': 'GPT-3.5 Turbo – sehr günstig (unter 1 Cent), aber weniger präzise'
-            };
+                const hinweise = {
+                    'gpt-4-turbo': 'GPT-4 Turbo – schnell, aktuell, günstig (ca. 1–2 Cent pro Beitrag)',
+                    'gpt-4': 'GPT-4 – leistungsstark, aber teurer (ca. 4–8 Cent pro Beitrag)',
+                    'gpt-3.5-turbo': 'GPT-3.5 Turbo – sehr günstig (unter 1 Cent), aber weniger präzise'
+                };
 
-            function updateHinweis() {
-                const modell = modellSelect.value;
-                hinweisFeld.textContent = hinweise[modell] || 'Unbekanntes Modell';
-            }
+                function updateHinweis() {
+                    const modell = modellSelect.value;
+                    hinweisFeld.textContent = hinweise[modell] || 'Unbekanntes Modell';
+                }
 
-            modellSelect.addEventListener('change', updateHinweis);
-            updateHinweis(); // Initial setzen
-        });
+                modellSelect.addEventListener('change', updateHinweis);
+                updateHinweis(); // Initial setzen
+            });
         </script>
     </div>
     <script>
-   jQuery(document).ready(function($) {
-        $('#empfaenger_user_ids').select2({
-            placeholder: 'Empfänger auswählen',
-            width: 'resolve',
-            closeOnSelect: false,
-            templateResult: function (data) {
-                if (!data.id) return data.text;
-                const checkbox = $('<span><input type="checkbox" style="margin-right: 6px;" /> ' + data.text + '</span>');
-                return checkbox;
-            },
-            templateSelection: function (data) {
-                return data.text;
-            }
+        jQuery(document).ready(function($) {
+            $('#empfaenger_user_ids').select2({
+                placeholder: 'Empfänger auswählen',
+                width: 'resolve',
+                closeOnSelect: false,
+                templateResult: function(data) {
+                    if (!data.id) return data.text;
+                    const checkbox = $('<span><input type="checkbox" style="margin-right: 6px;" /> ' + data.text + '</span>');
+                    return checkbox;
+                },
+                templateSelection: function(data) {
+                    return data.text;
+                }
+            });
         });
-    });
     </script>
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const container = document.getElementById('stilgruppen-container');
-        const button = document.getElementById('stilgruppe-hinzufuegen');
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('stilgruppen-container');
+            const button = document.getElementById('stilgruppe-hinzufuegen');
 
-        button.addEventListener('click', function () {
-            const div = document.createElement('div');
-            div.className = 'stilgruppe';
-            div.style.marginBottom = '10px';
-            div.innerHTML = `
+            button.addEventListener('click', function() {
+                const div = document.createElement('div');
+                div.className = 'stilgruppe';
+                div.style.marginBottom = '10px';
+                div.innerHTML = `
                 <input type="text" name="stilgruppe_label[]" placeholder="Bezeichnung (z. B. Bericht – sachlich)" style="width: 40%;" required>
                 <textarea name="stilgruppe_stil[]" placeholder="Stilbeschreibung (z. B. sachlich, sportlich, informativ)" rows="14" style="width: 100%;" required></textarea>
                 <button type="button" class="button stilgruppe-entfernen">–</button>
                 <p style="color: #666; font-size: 0.85em; margin-top: 8px;">💡 Denk nach dem lokalen Speichern der Stilgruppe daran, auch unten auf <strong>„Einstellungen speichern“</strong> zu klicken!</p>
             `;
-            container.appendChild(div);
-        });
+                container.appendChild(div);
+            });
 
-        container.addEventListener('click', function (e) {
-            if (e.target.classList.contains('stilgruppe-entfernen')) {
-                e.target.parentElement.remove();
-            }
-        });
-    });
-    </script>
-    <script>
-    jQuery(document).ready(function($) {
-        $('#test-openai-verbindung').on('click', function() {
-            const statusDiv = $('#openai-verbindungsstatus-ajax');
-            statusDiv.html('🔄 Verbindung wird getestet...');
-
-            $.post(ajaxurl, {
-                action: 'beitragseinreichung_test_openai_jetzt',
-                _wpnonce: '<?php echo wp_create_nonce('test_openai_ajax'); ?>'
-            }, function(response) {
-                if (response.success) {
-                    statusDiv.html('<span style="color:green;">✅ ' + response.data + '</span>');
-                } else {
-                    statusDiv.html('<span style="color:red;">❌ ' + response.data + '</span>');
+            container.addEventListener('click', function(e) {
+                if (e.target.classList.contains('stilgruppe-entfernen')) {
+                    e.target.parentElement.remove();
                 }
             });
         });
-    });
     </script>
-    <?php 
-    
+    <script>
+        jQuery(document).ready(function($) {
+            $('#test-openai-verbindung').on('click', function() {
+                const statusDiv = $('#openai-verbindungsstatus-ajax');
+                statusDiv.html('🔄 Verbindung wird getestet...');
+
+                $.post(ajaxurl, {
+                    action: 'beitragseinreichung_test_openai_jetzt',
+                    _wpnonce: '<?php echo wp_create_nonce('test_openai_ajax'); ?>'
+                }, function(response) {
+                    if (response.success) {
+                        statusDiv.html('<span style="color:green;">✅ ' + response.data + '</span>');
+                    } else {
+                        statusDiv.html('<span style="color:red;">❌ ' + response.data + '</span>');
+                    }
+                });
+            });
+        });
+    </script>
+<?php
+
 }
 
-function beitragseinreichung_ki_log_anzeige() {
+function beitragseinreichung_ki_log_anzeige()
+{
     $logs = get_option('beitragseinreichung_ki_logs', []);
 
     echo '<div class="wrap">';
@@ -1346,7 +1405,7 @@ function beitragseinreichung_ki_log_anzeige() {
         echo '<strong>Optimierter Text:</strong><br>' . nl2br(esc_html($log['optimierter_inhalt']));
         if (!empty($log['excerpt'])) {
             echo '<hr><strong>Textauszug:</strong><br>' . nl2br(esc_html($log['excerpt'])) . '<br><br>';
-        }        
+        }
         echo '<br><br><strong>Verwendetes Modell:</strong> ' . esc_html($log['modell'] ?? 'unbekannt');
         $stilgruppe = isset($log['stilgruppe']) && trim($log['stilgruppe']) !== '' ? $log['stilgruppe'] : '<unbekannt>';
         echo '<br><strong>Stilgruppe:</strong> ' . esc_html($stilgruppe);
@@ -1387,12 +1446,13 @@ function beitragseinreichung_ki_log_anzeige() {
     </script>';
 }
 
-add_filter('plugin_action_links_' . plugin_basename(__FILE__), function($links) {
+add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
     $links[] = '<a href="' . admin_url('admin.php?page=beitragseinreichung_einstellungen') . '">⚙️ Einstellungen</a>';
     return $links;
 });
 
-function beitrag_formatiere_inline_markdown($text) {
+function beitrag_formatiere_inline_markdown($text)
+{
     // Fett: **text**
     $text = preg_replace('/\*\*(.*?)\*\*/s', '<strong>$1</strong>', $text);
 
@@ -1405,7 +1465,8 @@ function beitrag_formatiere_inline_markdown($text) {
     return $text;
 }
 
-function beitrag_wandle_zu_gutenberg_blocks($text) {
+function beitrag_wandle_zu_gutenberg_blocks($text)
+{
     // Normalisiere Zeilenumbrüche
     $text = str_replace(["\r\n", "\r"], "\n", trim($text));
 
@@ -1428,7 +1489,8 @@ function beitrag_wandle_zu_gutenberg_blocks($text) {
 }
 
 
-function render_block_from_lines($lines) {
+function render_block_from_lines($lines)
+{
     $text = implode("\n", $lines);
     $text = trim($text);
 
@@ -1453,7 +1515,8 @@ function render_block_from_lines($lines) {
     return '<!-- wp:paragraph -->' . "\n" . '<p>' . wp_kses_post(beitrag_formatiere_inline_markdown($text)) . '</p>' . "\n" . '<!-- /wp:paragraph -->';
 }
 
-function beitragseinreichung_test_openai_verbindung($api_key = null) {
+function beitragseinreichung_test_openai_verbindung($api_key = null)
+{
     if (!$api_key) {
         $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
     }
@@ -1519,7 +1582,8 @@ add_action('admin_enqueue_scripts', function ($hook) {
     );
 });
 
-function beitrag_ki_admin_benachrichtigen($fehlermeldung) {
+function beitrag_ki_admin_benachrichtigen($fehlermeldung)
+{
     $admin_email = get_option('admin_email');
     $benutzer = wp_get_current_user();
     $zeit = current_time('mysql');

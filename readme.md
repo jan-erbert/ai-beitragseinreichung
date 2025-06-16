@@ -1,8 +1,8 @@
 # 🧠 AI Beitragseinreichung
 
-> Version: 1.1.3
+> Version: 1.1.4
 > Autor: Jan Erbert  
-> Letztes Update: 2025-05-25  
+> Letztes Update: 2025-06-16
 > Lizenz: GPL2+
 
 Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, im Backend Beiträge mit Schlagwörtern, Kategorien, Bildern und optionaler KI-Unterstützung einzureichen. Die Inhalte werden mit einem benutzerdefinierten Status gespeichert und können anschließend durch Admins oder Redakteure geprüft werden.
@@ -26,6 +26,7 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
 
 - 📝 **Backend-Formular zur Beitragseinreichung**  
   Nutzer mit Berechtigung können neue Beiträge inklusive:
+
   - Titel & Inhalt
   - Kategorie & Schlagwörter
   - Beitragsbild & Galerie
@@ -47,39 +48,43 @@ Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, 
 🛠️ **Eigene Rollen & Berechtigungen**  
 Es lassen sich folgende Rechte vergeben:
 
-- `beitragseinreichung_submit` – Beiträge einreichen, KI-Protokoll ansehen  
-- `beitragseinreichung_settings` – Zugriff auf die Plugin-Einstellungen  
+- `beitragseinreichung_submit` – Beiträge einreichen, KI-Protokoll ansehen
+- `beitragseinreichung_settings` – Zugriff auf die Plugin-Einstellungen
 - `beitragseinreichung_admin` – Erweiterte Adminfunktionen (API-Key verwalten, Modellwahl, KI-Protokoll löschen etc.)
 
-    🔐 **Integration mit dem Plugin „Members“**  
-    Die Rechte des Plugins sind vollständig kompatibel mit dem beliebten WordPress-Plugin [Members](https://de.wordpress.org/plugins/members/). Dort erscheinen sie unter der separaten Gruppe **„AI Beitragseinreichung“**.
+  🔐 **Integration mit dem Plugin „Members“**  
+   Die Rechte des Plugins sind vollständig kompatibel mit dem beliebten WordPress-Plugin [Members](https://de.wordpress.org/plugins/members/). Dort erscheinen sie unter der separaten Gruppe **„AI Beitragseinreichung“**.
 
-    👉 **So funktioniert’s:**
-    1. Installiere und aktiviere das Plugin „Members“.
-    2. Gehe zu **Benutzer → Rollen** und bearbeite eine bestehende Rolle (z. B. „Autor“) oder erstelle eine neue.
-    3. Aktiviere gezielt die gewünschten Rechte wie `beitragseinreichung_submit`.
-    4. Weise die Rolle den entsprechenden Benutzern zu.
+  👉 **So funktioniert’s:**
 
-    Damit kannst du exakt steuern, wer was im Einreichungsprozess darf – z. B. Autoren, die Beiträge nur einreichen können, oder Admins mit Zugriff auf alle Einstellungen und Logs.
+  1. Installiere und aktiviere das Plugin „Members“.
+  2. Gehe zu **Benutzer → Rollen** und bearbeite eine bestehende Rolle (z. B. „Autor“) oder erstelle eine neue.
+  3. Aktiviere gezielt die gewünschten Rechte wie `beitragseinreichung_submit`.
+  4. Weise die Rolle den entsprechenden Benutzern zu.
 
-- 📬 **Benachrichtigungen per E-Mail**  
+  Damit kannst du exakt steuern, wer was im Einreichungsprozess darf – z. B. Autoren, die Beiträge nur einreichen können, oder Admins mit Zugriff auf alle Einstellungen und Logs.
+
+- 📬 **Benachrichtigungen per E-Mail**
+
   - E-Mail an ausgewählte Admins bei neuen Beiträgen
   - Optional auch Benachrichtigung an den Autor selbst
 
 - 📑 **KI-Protokoll**  
   Übersicht aller durchgeführten Optimierungen inklusive:
+
   - Vorher/Nachher-Vergleich von Titel & Inhalt
   - Zeitstempel, Autor & Modell
   - Genutzte Stilgruppe
   - Admins können Einträge löschen
 
-- 🧾 **Textauszug (optional)**  
-  - Der Beitrag kann einen Kurztext (Excerpt) enthalten  
-  - Wahlweise manuell oder automatisch durch die KI generiert  
-  - Ein-/Ausblendbar über die Plugin-Einstellungen  
+- 🧾 **Textauszug (optional)**
+
+  - Der Beitrag kann einen Kurztext (Excerpt) enthalten
+  - Wahlweise manuell oder automatisch durch die KI generiert
+  - Ein-/Ausblendbar über die Plugin-Einstellungen
   - Wird im Beitrag gespeichert und im KI-Protokoll dokumentiert
 
-- 📶 **OpenAI API-Statusanzeige**  
+- 📶 **OpenAI API-Statusanzeige**
   - Verbindungstest beim Speichern der Einstellungen
   - Manuell auslösbarer Test
   - Statusanzeige mit Zeitstempel
@@ -102,7 +107,6 @@ Es lassen sich folgende Rechte vergeben:
 3. Optional: OpenAI API-Key in den Einstellungen hinterlegen.
 4. Benutzerrechte zuweisen.
 5. Stilgruppen & Standardkategorie definieren.
-
 
 ---
 
@@ -166,7 +170,7 @@ Die KI-Optimierung erfolgt **nicht automatisch**, sondern orientiert sich an dei
 ```text
 Ergebnisse vom Lauf in Mainz
 
-Max Mustermann lief 12:00.  
+Max Mustermann lief 12:00.
 Maximilia Musterfrau 14:30.
 ```
 
