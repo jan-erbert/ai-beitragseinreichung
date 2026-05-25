@@ -130,6 +130,8 @@ add_action('wp_ajax_beitragseinreichung_ki_log_loeschen', function () {
 
 defined('ABSPATH') || exit;
 
+require_once plugin_dir_path(__FILE__) . 'includes/bootstrap.php';
+
 add_action('admin_enqueue_scripts', function ($hook) {
     if ($hook !== 'toplevel_page_beitragseinreichung') return;
     wp_enqueue_media(); // lädt den Media Uploader
