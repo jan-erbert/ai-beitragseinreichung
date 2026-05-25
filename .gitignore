@@ -1,0 +1,17 @@
+/vendor/
+/node_modules/
+
+.phpunit.result.cache
+.phpcs-cache
+.php-cs-fixer.cache
+
+.DS_Store
+Thumbs.db
+
+*.log
+*.zip
+
+.vscode/*
+!.vscode/settings.json
+
+AGENTS.md
