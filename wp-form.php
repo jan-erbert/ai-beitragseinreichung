@@ -76,18 +76,6 @@ defined('ABSPATH') || exit;
 
 require_once plugin_dir_path(__FILE__) . 'includes/bootstrap.php';
 
-add_action('admin_enqueue_scripts', function ($hook) {
-    if ($hook !== 'toplevel_page_beitragseinreichung') return;
-    wp_enqueue_media(); // lädt den Media Uploader
-});
-
-add_action('admin_enqueue_scripts', function ($hook) {
-    if ($hook !== 'beitragseinreichung_page_beitragseinreichung_einstellungen') return;
-
-    wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
-    wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
-});
-
 // 2. Formular anzeigen
 function beitragseinreichung_formular_anzeige()
 {
@@ -460,11 +448,6 @@ add_action('admin_init', function () {
         }
     }
 });
-
-function remove_emojis($string)
-{
-    return preg_replace('/[\x{1F600}-\x{1F64F}|\x{1F300}-\x{1F5FF}|\x{1F680}-\x{1F6FF}|\x{2600}-\x{26FF}|\x{2700}-\x{27BF}]+/u', '', $string);
-}
 
 // KI-Textverbesserung über OpenAI GPT-4
 function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', $modell = 'gpt-4-turbo', $zusatz = '')
@@ -1289,70 +1272,6 @@ add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links)
     return $links;
 });
 
-function beitrag_formatiere_inline_markdown($text)
-{
-    // Fett: **text**
-    $text = preg_replace('/\*\*(.*?)\*\*/s', '<strong>$1</strong>', $text);
-
-    // Kursiv: *text*
-    $text = preg_replace('/(?<!\*)\*(?!\*)(.*?)\*(?!\*)/s', '<em>$1</em>', $text);
-
-    // Links: [Text](URL)
-    $text = preg_replace('/\[(.*?)\]\((.*?)\)/', '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>', $text);
-
-    return $text;
-}
-
-function beitrag_wandle_zu_gutenberg_blocks($text)
-{
-    // Normalisiere Zeilenumbrüche
-    $text = str_replace(["\r\n", "\r"], "\n", trim($text));
-
-    // Trenne bei zwei oder mehr Zeilenumbrüchen (echte Absätze)
-    $absätze = preg_split("/\n{2,}/", $text);
-
-    $blocks = [];
-
-    foreach ($absätze as $absatz) {
-        $absatz = trim($absatz);
-        if ($absatz === '') continue;
-
-        // Belasse harte Umbrüche im Absatz (z. B. Ergebniszeilen mit \n)
-        $html = nl2br(beitrag_formatiere_inline_markdown($absatz));
-
-        $blocks[] = '<!-- wp:paragraph -->' . "\n" . '<p>' . $html . '</p>' . "\n" . '<!-- /wp:paragraph -->';
-    }
-
-    return implode("\n\n", $blocks);
-}
-
-
-function render_block_from_lines($lines)
-{
-    $text = implode("\n", $lines);
-    $text = trim($text);
-
-    // Überschrift?
-    if (preg_match('/^#{1,6} (.+)/', $text, $matches)) {
-        $level = strlen(explode(' ', $text)[0]);
-        $content = trim($matches[1]);
-        return '<!-- wp:heading {"level":' . $level . '} -->' . "\n" . '<h' . $level . '>' . esc_html($content) . '</h' . $level . '>' . "\n" . '<!-- /wp:heading -->';
-    }
-
-    // Liste?
-    if (preg_match('/^[-*] (.+)/', $lines[0])) {
-        $items = '';
-        foreach ($lines as $line) {
-            $line = ltrim((string) $line, '-* ');
-            $items .= '<li>' . wp_kses_post(beitrag_formatiere_inline_markdown($line)) . '</li>';
-        }
-        return '<!-- wp:list --><ul>' . $items . '</ul><!-- /wp:list -->';
-    }
-
-    // Standard: Absatz
-    return '<!-- wp:paragraph -->' . "\n" . '<p>' . wp_kses_post(beitrag_formatiere_inline_markdown($text)) . '</p>' . "\n" . '<!-- /wp:paragraph -->';
-}
-
 function beitragseinreichung_test_openai_verbindung($api_key = null)
 {
     if (!$api_key) {
@@ -1408,17 +1327,6 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
     update_option('beitragseinreichung_api_status', $status);
     return $status;
 }
-
-add_action('admin_enqueue_scripts', function ($hook) {
-    if ($hook !== 'toplevel_page_beitragseinreichung') return;
-
-    wp_enqueue_style(
-        'beitragseinreichung-style',
-        plugin_dir_url(__FILE__) . 'css/style.css',
-        [],
-        '1.0'
-    );
-});
 
 function beitrag_ki_admin_benachrichtigen($fehlermeldung)
 {

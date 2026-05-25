@@ -1,0 +1,26 @@
+<?php
+
+defined('ABSPATH') || exit;
+
+add_action('admin_enqueue_scripts', function ($hook) {
+    if ($hook !== 'toplevel_page_beitragseinreichung') return;
+    wp_enqueue_media(); // laedt den Media Uploader
+});
+
+add_action('admin_enqueue_scripts', function ($hook) {
+    if ($hook !== 'beitragseinreichung_page_beitragseinreichung_einstellungen') return;
+
+    wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css');
+    wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', ['jquery'], null, true);
+});
+
+add_action('admin_enqueue_scripts', function ($hook) {
+    if ($hook !== 'toplevel_page_beitragseinreichung') return;
+
+    wp_enqueue_style(
+        'beitragseinreichung-style',
+        plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php') . 'css/style.css',
+        [],
+        '1.0'
+    );
+});
