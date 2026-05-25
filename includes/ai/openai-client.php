@@ -5,9 +5,11 @@ defined('ABSPATH') || exit;
 /**
  * Verbessert Text ueber die OpenAI-API.
  */
-function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', $modell = 'gpt-4-turbo', $zusatz = '')
+function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', $modell = null, $zusatz = '')
 {
     global $beitrag_ki_fehler; // NEU
+
+    $modell = beitrag_normalize_ai_model($modell);
 
     $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
     if (!$api_key || empty(trim($text))) {
@@ -113,6 +115,8 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
         $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
     }
 
+    $modell = beitrag_normalize_ai_model(get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
+
     $status = [
         'zeit' => current_time('mysql'),
     ];
@@ -131,7 +135,7 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
             'Content-Type' => 'application/json',
         ],
         'body' => json_encode([
-            'model' => 'gpt-3.5-turbo',
+            'model' => $modell,
             'messages' => [
                 ['role' => 'user', 'content' => 'Sag nur: ✅'],
             ],

@@ -125,7 +125,7 @@ function beitragseinreichung_formular_anzeige()
                                     <input type="checkbox" name="beitrag_ki_individuell" id="beitrag_ki_individuell" value="1">
                                     <strong>Texte automatisch verbessern</strong> (Empfohlen)
                                 </label>
-                                <p class="description">Wenn aktiviert, werden Titel und Inhalt dieses Beitrags stilistisch mit GPT-4 überarbeitet.</p>
+                                <p class="description">Wenn aktiviert, werden Titel und Inhalt dieses Beitrags mit dem gewählten KI-Modell stilistisch überarbeitet.</p>
                                 <?php if ($excerpt_aktiv): ?>
                                     <div id="ki-excerpt-option" style="margin-top: 10px; display: none;">
                                         <label>
@@ -299,8 +299,8 @@ add_action('admin_init', function () {
             $original_titel = $titel;
             $original_inhalt = $inhalt;
             // Modell vorher festlegen
-            $modell = get_option('beitragseinreichung_ki_modell', 'gpt-4-turbo');
-            // Überarbeiten mit GPT-4
+            $modell = beitrag_normalize_ai_model(get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
+            // Überarbeiten mit dem gewählten KI-Modell
             $zusatz = sanitize_textarea_field($_POST['beitrag_ki_hinweis'] ?? '');
             // Immer initialisieren, damit sie später verfügbar ist
             $stilgruppe_label = '';
@@ -309,7 +309,7 @@ add_action('admin_init', function () {
                 // Originale merken
                 $original_titel = $titel;
                 $original_inhalt = $inhalt;
-                $modell = get_option('beitragseinreichung_ki_modell', 'gpt-4-turbo');
+                $modell = beitrag_normalize_ai_model(get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
                 $zusatz = sanitize_textarea_field($_POST['beitrag_ki_hinweis'] ?? '');
                 $stilgruppe_label = !empty($_POST['beitrag_ki_stilgruppe']) ? sanitize_text_field($_POST['beitrag_ki_stilgruppe']) : '';
 
@@ -743,7 +743,7 @@ function beitragseinreichung_einstellungen_anzeige()
         }
         update_option('beitragseinreichung_ki_stilgruppen', $stilgruppen);
         $ki_stil = isset($_POST['beitragseinreichung_ki_stil']) ? sanitize_text_field($_POST['beitragseinreichung_ki_stil']) : '';
-        $ki_modell = isset($_POST['beitragseinreichung_ki_modell']) ? sanitize_text_field($_POST['beitragseinreichung_ki_modell']) : 'gpt-4-turbo';
+        $ki_modell = beitrag_normalize_ai_model(isset($_POST['beitragseinreichung_ki_modell']) ? sanitize_text_field($_POST['beitragseinreichung_ki_modell']) : get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
         $autor_notify = isset($_POST['beitragseinreichung_autor_notify']) ? 1 : 0;
         update_option('beitragseinreichung_autor_notify', $autor_notify);
         update_option('beitragseinreichung_ki_modell', $ki_modell);
@@ -1006,14 +1006,13 @@ function beitragseinreichung_einstellungen_anzeige()
                             <?php echo $ist_admin ? '' : 'disabled'; ?>
                             title="<?php echo esc_attr('Nur Admins können das Modell ändern.'); ?>">
                             <?php
-                            $modelle = [
-                                'gpt-4-turbo' => 'GPT-4 Turbo (schneller, günstiger, aktuelle Version)',
-                                'gpt-4' => 'GPT-4 (standard, teuerer)',
-                                'gpt-3.5-turbo' => 'GPT-3.5 Turbo (günstig, aber schwächer)'
-                            ];
-                            $auswahl = get_option('beitragseinreichung_ki_modell', 'gpt-4-turbo');
-                            foreach ($modelle as $wert => $label) {
-                                echo '<option value="' . esc_attr($wert) . '" ' . selected($auswahl, $wert, false) . '>' . esc_html($label) . '</option>';
+                            $modelle = beitrag_get_ai_model_profiles();
+                            $auswahl = beitrag_normalize_ai_model(get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
+                            foreach ($modelle as $profil) {
+                                $wert = $profil['model'];
+                                $label = $profil['label'];
+                                $beschreibung = $profil['description'];
+                                echo '<option value="' . esc_attr($wert) . '" data-description="' . esc_attr($beschreibung) . '" ' . selected($auswahl, $wert, false) . '>' . esc_html($label) . '</option>';
                             }
                             ?>
                         </select>
@@ -1085,15 +1084,9 @@ function beitragseinreichung_einstellungen_anzeige()
                 const modellSelect = document.getElementById('beitragseinreichung_ki_modell');
                 const hinweisFeld = document.getElementById('ki-hinweis-modell');
 
-                const hinweise = {
-                    'gpt-4-turbo': 'GPT-4 Turbo – schnell, aktuell, günstig (ca. 1–2 Cent pro Beitrag)',
-                    'gpt-4': 'GPT-4 – leistungsstark, aber teurer (ca. 4–8 Cent pro Beitrag)',
-                    'gpt-3.5-turbo': 'GPT-3.5 Turbo – sehr günstig (unter 1 Cent), aber weniger präzise'
-                };
-
                 function updateHinweis() {
-                    const modell = modellSelect.value;
-                    hinweisFeld.textContent = hinweise[modell] || 'Unbekanntes Modell';
+                    const option = modellSelect.options[modellSelect.selectedIndex];
+                    hinweisFeld.textContent = option ? option.dataset.description : 'Unbekanntes Modell';
                 }
 
                 modellSelect.addEventListener('change', updateHinweis);
