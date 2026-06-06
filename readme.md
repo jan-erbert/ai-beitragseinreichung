@@ -1,8 +1,8 @@
 # 🧠 AI Beitragseinreichung
 
-> Version: 1.1.4
+> Version: 1.2.0
 > Autor: Jan Erbert  
-> Letztes Update: 2025-06-16
+> Letztes Update: 2026-06-06
 > Lizenz: GPL2+
 
 Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, im Backend Beiträge mit Schlagwörtern, Kategorien, Bildern und optionaler KI-Unterstützung einzureichen. Die Inhalte werden mit einem benutzerdefinierten Status gespeichert und können anschließend durch Admins oder Redakteure geprüft werden.

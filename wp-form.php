@@ -4,10 +4,12 @@
  * Plugin Name: 🧠 AI Beitragseinreichung
  * Plugin URI: https://jan-erbert.de
  * Description: Ermöglicht es berechtigten Nutzern, im Backend Beiträge mit Bild und Schlagwörtern einzureichen. Beiträge werden mit Status "In Verarbeitung" gespeichert und können durch AI verbessert werden.
- * Version: 1.1.5
+ * Version: 1.2.0
  * Author: Jan Erbert
  * License: GPL2+
  */
+
+defined('ABSPATH') || exit;
 
 // 0. Custom Capabilities registrieren (bei Plugin-Activation)
 register_activation_hook(__FILE__, function () {
@@ -61,6 +63,10 @@ add_action('admin_menu', function () {
 });
 
 add_action('wp_ajax_beitragseinreichung_test_openai_jetzt', function () {
+    if (!current_user_can('beitragseinreichung_settings')) {
+        wp_send_json_error('Keine Berechtigung');
+    }
+
     check_ajax_referer('test_openai_ajax');
 
     $status = beitragseinreichung_test_openai_verbindung();
@@ -71,8 +77,6 @@ add_action('wp_ajax_beitragseinreichung_test_openai_jetzt', function () {
         wp_send_json_error($status['info']);
     }
 });
-
-defined('ABSPATH') || exit;
 
 require_once plugin_dir_path(__FILE__) . 'includes/bootstrap.php';
 
@@ -91,9 +95,10 @@ add_action('init', function () {
 
 // 5. JavaScript für Media Picker und Validierung
 add_action('admin_footer', function () {
-    echo '<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>';
     $screen = get_current_screen();
-    if ($screen->id !== 'toplevel_page_beitragseinreichung') return;
+    if (!$screen || $screen->id !== 'toplevel_page_beitragseinreichung') return;
+
+    echo '<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>';
 ?>
     <script>
         jQuery(document).ready(function($) {

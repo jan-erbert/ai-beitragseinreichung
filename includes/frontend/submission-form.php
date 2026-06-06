@@ -85,8 +85,6 @@ function beitragseinreichung_formular_anzeige()
                             </div>
                         </td>
                     </tr>
-
-                    </tbody>
                 <?php endif; ?>
                 <tr>
                     <th><label for="beitrag_tags">Schlagwörter <span class="required">*</span></label></th>
@@ -163,11 +161,15 @@ function beitragseinreichung_formular_anzeige()
             const select = document.getElementById('beitrag_ki_stilgruppe');
             const zielAnzeigen = document.getElementById('stilgruppe-zieltext');
 
-            const stilgruppen = <?php echo json_encode(get_option('beitragseinreichung_ki_stilgruppen', [])); ?>;
+            if (!select || !zielAnzeigen) {
+                return;
+            }
+
+            const stilgruppen = <?php echo wp_json_encode(get_option('beitragseinreichung_ki_stilgruppen', [])); ?>;
 
             function updateZieltext() {
                 const selectedStil = select.value;
-                const gruppe = stilgruppen.find(g => g.stil === selectedStil);
+                const gruppe = stilgruppen.find(g => g.label === selectedStil);
                 if (gruppe && gruppe.ziel) {
                     zielAnzeigen.textContent = "Stilgruppen Ziel: " + gruppe.ziel;
                 } else {

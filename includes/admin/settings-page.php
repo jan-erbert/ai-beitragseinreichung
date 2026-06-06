@@ -9,17 +9,18 @@ function beitragseinreichung_einstellungen_anzeige()
 {
     $ist_admin = current_user_can('beitragseinreichung_admin');
     if (isset($_POST['beitrag_einstellungen_nonce']) && wp_verify_nonce($_POST['beitrag_einstellungen_nonce'], 'speichern_beitrag_einstellungen')) {
+        if (!current_user_can('beitragseinreichung_settings')) {
+            wp_die(__('Du hast keine Berechtigung, diese Einstellungen zu speichern.'));
+        }
+
         $kategorie = isset($_POST['standard_kategorie']) ? [(int) $_POST['standard_kategorie']] : [];
-        $empfaenger = isset($_POST['empfaenger_user_ids']) ? array_map('intval', $_POST['empfaenger_user_ids']) : [];
-        $ki_aktiv = isset($_POST['beitragseinreichung_ki_aktiv']) ? (int) $_POST['beitragseinreichung_ki_aktiv'] : 0;
-        update_option('beitragseinreichung_ki_aktiv', $ki_aktiv);
         $stilgruppen = [];
         if (!empty($_POST['stilgruppe_label']) && !empty($_POST['stilgruppe_stil'])) {
             foreach ($_POST['stilgruppe_label'] as $i => $label) {
-                $label = sanitize_text_field($label);
-                $stil = sanitize_text_field($_POST['stilgruppe_stil'][$i]);
+                $label = sanitize_text_field(wp_unslash($label));
+                $stil = sanitize_textarea_field(wp_unslash($_POST['stilgruppe_stil'][$i] ?? ''));
                 if (!empty($label) && !empty($stil)) {
-                    $ziel = sanitize_text_field($_POST['stilgruppe_ziel'][$i] ?? '');
+                    $ziel = sanitize_text_field(wp_unslash($_POST['stilgruppe_ziel'][$i] ?? ''));
                     $stilgruppen[] = [
                         'label' => $label,
                         'stil' => $stil,
@@ -29,20 +30,38 @@ function beitragseinreichung_einstellungen_anzeige()
             }
         }
         update_option('beitragseinreichung_ki_stilgruppen', $stilgruppen);
-        $ki_stil = isset($_POST['beitragseinreichung_ki_stil']) ? sanitize_text_field($_POST['beitragseinreichung_ki_stil']) : '';
-        $ki_modell = beitrag_normalize_ai_model(isset($_POST['beitragseinreichung_ki_modell']) ? sanitize_text_field($_POST['beitragseinreichung_ki_modell']) : get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
+        $ki_stil = isset($_POST['beitragseinreichung_ki_stil']) ? sanitize_text_field(wp_unslash($_POST['beitragseinreichung_ki_stil'])) : '';
         $autor_notify = isset($_POST['beitragseinreichung_autor_notify']) ? 1 : 0;
         update_option('beitragseinreichung_autor_notify', $autor_notify);
-        update_option('beitragseinreichung_ki_modell', $ki_modell);
-        if (!defined('OPENAI_API_KEY') && isset($_POST['beitragseinreichung_api_key'])) {
-            $key = trim(sanitize_text_field($_POST['beitragseinreichung_api_key']));
-            update_option('beitragseinreichung_api_key', $key);
-        }
-        $excerpt_aktiv = isset($_POST['beitragseinreichung_excerpt_aktiv']) ? (int) $_POST['beitragseinreichung_excerpt_aktiv'] : 1;
-        update_option('beitragseinreichung_excerpt_aktiv', $excerpt_aktiv);
         update_option('beitragseinreichung_ki_stil', $ki_stil);
         update_option('beitragseinreichung_standard_kategorien', $kategorie);
-        update_option('beitragseinreichung_benachrichtigungs_user_ids', $empfaenger);
+
+        if ($ist_admin) {
+            $empfaenger = isset($_POST['empfaenger_user_ids']) ? array_map('intval', (array) $_POST['empfaenger_user_ids']) : [];
+            update_option('beitragseinreichung_benachrichtigungs_user_ids', $empfaenger);
+
+            if (isset($_POST['beitragseinreichung_ki_aktiv'])) {
+                update_option('beitragseinreichung_ki_aktiv', (int) $_POST['beitragseinreichung_ki_aktiv']);
+            }
+
+            if (isset($_POST['beitragseinreichung_ki_modell'])) {
+                $ki_modell = beitrag_normalize_ai_model(sanitize_text_field(wp_unslash($_POST['beitragseinreichung_ki_modell'])));
+                update_option('beitragseinreichung_ki_modell', $ki_modell);
+            }
+
+            if (isset($_POST['beitragseinreichung_excerpt_aktiv'])) {
+                update_option('beitragseinreichung_excerpt_aktiv', (int) $_POST['beitragseinreichung_excerpt_aktiv']);
+            }
+
+            if (!defined('OPENAI_API_KEY') && isset($_POST['beitragseinreichung_api_key'])) {
+                $saved_key = (string) get_option('beitragseinreichung_api_key', '');
+                $key = trim(sanitize_text_field(wp_unslash($_POST['beitragseinreichung_api_key'])));
+                $masked_key = str_repeat('*', strlen($saved_key));
+                if ($key !== $masked_key) {
+                    update_option('beitragseinreichung_api_key', $key);
+                }
+            }
+        }
 
         echo '<div class="updated"><p>Einstellungen gespeichert.</p></div>';
         // Verbindung testen nach dem Speichern
@@ -157,7 +176,7 @@ function beitragseinreichung_einstellungen_anzeige()
                 </tr>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        const stilgruppen = <?php echo json_encode(get_option('beitragseinreichung_ki_stilgruppen', [])); ?>;
+                        const stilgruppen = <?php echo wp_json_encode(get_option('beitragseinreichung_ki_stilgruppen', [])); ?>;
 
                         const auswahl = document.getElementById('stilgruppe-auswahl');
                         const editor = document.getElementById('stilgruppe-editor');
@@ -320,7 +339,7 @@ function beitragseinreichung_einstellungen_anzeige()
                             <input type="text" value="(aus wp-config.php)" disabled class="regular-text">
                             <p class="description">Der API-Key wird aktuell aus der Konfiguration geladen.</p>
                         <?php else:
-                            $saved_key = get_option('beitragseinreichung_api_key');
+                            $saved_key = (string) get_option('beitragseinreichung_api_key', '');
                         ?>
                             <input type="password"
                                 name="beitragseinreichung_api_key"
@@ -383,48 +402,6 @@ function beitragseinreichung_einstellungen_anzeige()
     </div>
     <script>
         jQuery(document).ready(function($) {
-            $('#empfaenger_user_ids').select2({
-                placeholder: 'Empfänger auswählen',
-                width: 'resolve',
-                closeOnSelect: false,
-                templateResult: function(data) {
-                    if (!data.id) return data.text;
-                    const checkbox = $('<span><input type="checkbox" style="margin-right: 6px;" /> ' + data.text + '</span>');
-                    return checkbox;
-                },
-                templateSelection: function(data) {
-                    return data.text;
-                }
-            });
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const container = document.getElementById('stilgruppen-container');
-            const button = document.getElementById('stilgruppe-hinzufuegen');
-
-            button.addEventListener('click', function() {
-                const div = document.createElement('div');
-                div.className = 'stilgruppe';
-                div.style.marginBottom = '10px';
-                div.innerHTML = `
-                <input type="text" name="stilgruppe_label[]" placeholder="Bezeichnung (z. B. Bericht – sachlich)" style="width: 40%;" required>
-                <textarea name="stilgruppe_stil[]" placeholder="Stilbeschreibung (z. B. sachlich, sportlich, informativ)" rows="14" style="width: 100%;" required></textarea>
-                <button type="button" class="button stilgruppe-entfernen">–</button>
-                <p style="color: #666; font-size: 0.85em; margin-top: 8px;">💡 Denk nach dem lokalen Speichern der Stilgruppe daran, auch unten auf <strong>„Einstellungen speichern“</strong> zu klicken!</p>
-            `;
-                container.appendChild(div);
-            });
-
-            container.addEventListener('click', function(e) {
-                if (e.target.classList.contains('stilgruppe-entfernen')) {
-                    e.target.parentElement.remove();
-                }
-            });
-        });
-    </script>
-    <script>
-        jQuery(document).ready(function($) {
             $('#test-openai-verbindung').on('click', function() {
                 const statusDiv = $('#openai-verbindungsstatus-ajax');
                 statusDiv.html('🔄 Verbindung wird getestet...');
@@ -433,10 +410,14 @@ function beitragseinreichung_einstellungen_anzeige()
                     action: 'beitragseinreichung_test_openai_jetzt',
                     _wpnonce: '<?php echo wp_create_nonce('test_openai_ajax'); ?>'
                 }, function(response) {
+                    const color = response.success ? 'green' : 'red';
+                    const icon = response.success ? '✅ ' : '❌ ';
+                    const text = icon + response.data;
+
                     if (response.success) {
-                        statusDiv.html('<span style="color:green;">✅ ' + response.data + '</span>');
+                        statusDiv.empty().append($('<span>').css('color', color).text(text));
                     } else {
-                        statusDiv.html('<span style="color:red;">❌ ' + response.data + '</span>');
+                        statusDiv.empty().append($('<span>').css('color', color).text(text));
                     }
                 });
             });

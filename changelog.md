@@ -1,5 +1,35 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.2.0 – 2026-06-06
+
+**Fixed:**
+
+- API-Key wird beim Speichern der Einstellungen nicht mehr durch maskierte Sternchen ueberschrieben.
+- Admin-only Einstellungen werden nicht mehr durch Benutzer ohne Admin-Recht geleert oder deaktiviert.
+- Beitragseinreichungen pruefen jetzt die Plugin-Capability `beitragseinreichung_submit`.
+- Fehler bei `wp_insert_post()` werden vor weiteren Metadaten-Aenderungen abgefangen.
+- KI-generierte Titel werden vor dem Speichern von Markdown und HTML bereinigt und auf eine sinnvolle Laenge begrenzt.
+- Emojis bleiben in Titeln erlaubt, damit Stilgruppen weiterhin expressive Titel erzeugen koennen.
+- Zieltext der Stilgruppe wird im Formular wieder anhand der ausgewaehlten Stilgruppen-Bezeichnung gefunden.
+- JavaScript-Altlasten auf der Einstellungsseite entfernt, die auf nicht mehr vorhandene Elemente verwiesen.
+
+**Improved:**
+
+- KI-Optimierung fuer Titel, Inhalt und optionalen Textauszug nutzt jetzt eine strukturierte JSON-Antwort in einem gemeinsamen KI-Aufruf.
+- Prompt-Aufbau und Parsing strukturierter KI-Antworten sind in eigene Module ausgelagert.
+- Galerie-Anhang und Benachrichtigungsmail sind aus dem Post-Handler in ein Core-Hilfsmodul ausgelagert.
+- Titel werden mit Kontext des Beitragstextes verbessert, bleiben aber nah an der Nutzereingabe.
+- Titel-Prompt fuer die KI enger gefasst: kurze einzeilige Titel, keine Markdown-Formatierung, keine erfundenen Fakten.
+- Textauszug-Prompt nutzt eigene Temperatur und Systemrolle.
+- Markdown-Links werden bei der Gutenberg-Konvertierung sicherer verarbeitet.
+- OpenAI-Verbindungstest per AJAX prueft jetzt die passende Plugin-Capability.
+- Direkte Plugin-Dateiaufrufe werden frueher blockiert.
+
+**Notes:**
+
+- Naechster geplanter Umbau: Post-Verarbeitung weiter in kleinere Erstellungs- und Validierungsfunktionen trennen.
+- Spaetere Phase: zentrale, leicht pflegbare Modellkonfiguration mit UI-Profilen statt verstreuten technischen Modellnamen.
+
 ## Version 1.1.4 – 2025-06-16
 
 **Added:**
