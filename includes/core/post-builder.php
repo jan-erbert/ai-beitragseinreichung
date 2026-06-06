@@ -3,28 +3,113 @@
 defined('ABSPATH') || exit;
 
 /**
- * Fuegt ausgewaehlte Galeriebilder am Ende eines Beitrags an.
+ * Bereitet uebergebene Galerie-IDs fuer die Ausgabe vor.
+ *
+ * @param mixed $gallery_ids Kommagetrennte Attachment-IDs.
+ * @return int[]
+ */
+function beitragseinreichung_parse_gallery_ids($gallery_ids)
+{
+    $ids = array_filter(array_map('intval', explode(',', (string) $gallery_ids)));
+
+    return array_values(array_unique($ids));
+}
+
+/**
+ * Rendert ein einzelnes Zusatzbild fuer den Beitrag.
+ */
+function beitragseinreichung_render_single_gallery_image($attachment_id)
+{
+    $image = wp_get_attachment_image(
+        $attachment_id,
+        'large',
+        false,
+        [
+            'class' => 'beitrag-gallery-single__image',
+            'loading' => 'lazy',
+        ]
+    );
+
+    if (!$image) {
+        return '';
+    }
+
+    return '<!-- wp:html -->' . "\n"
+        . '<figure class="beitrag-gallery-single">'
+        . $image
+        . '</figure>' . "\n"
+        . '<!-- /wp:html -->';
+}
+
+/**
+ * Rendert mehrere Zusatzbilder als Slider.
+ */
+function beitragseinreichung_render_gallery_slider(array $ids)
+{
+    $slides = [];
+    $total = count($ids);
+
+    foreach ($ids as $index => $id) {
+        $image = wp_get_attachment_image(
+            $id,
+            'large',
+            false,
+            [
+                'class' => 'beitrag-gallery-slider__image',
+                'loading' => 'lazy',
+            ]
+        );
+
+        if (!$image) {
+            continue;
+        }
+
+        $slides[] = '<div class="beitrag-gallery-slider__slide" data-slide-index="' . esc_attr((string) $index) . '"' . ($index > 0 ? ' hidden' : '') . '>'
+            . $image
+            . '<span class="beitrag-gallery-slider__counter">' . esc_html(($index + 1) . ' / ' . $total) . '</span>'
+            . '</div>';
+    }
+
+    if (empty($slides)) {
+        return '';
+    }
+
+    return '<!-- wp:html -->' . "\n"
+        . '<section class="beitrag-gallery-slider" data-current-slide="0" aria-label="' . esc_attr__('Zusätzliche Bilder', 'ai-beitragseinreichung') . '">'
+        . '<div class="beitrag-gallery-slider__viewport">'
+        . implode('', $slides)
+        . '</div>'
+        . '<div class="beitrag-gallery-slider__controls">'
+        . '<button type="button" class="beitrag-gallery-slider__button" data-beitrag-slider-action="prev" aria-label="' . esc_attr__('Vorheriges Bild', 'ai-beitragseinreichung') . '">‹</button>'
+        . '<button type="button" class="beitrag-gallery-slider__button" data-beitrag-slider-action="next" aria-label="' . esc_attr__('Nächstes Bild', 'ai-beitragseinreichung') . '">›</button>'
+        . '</div>'
+        . '</section>' . "\n"
+        . '<!-- /wp:html -->';
+}
+
+/**
+ * Fuegt ausgewaehlte Galeriebilder sauber am Ende eines Beitrags an.
  */
 function beitragseinreichung_haenge_galeriebilder_an($beitrag_id, $gallery_ids)
 {
-    $ids = array_map('intval', explode(',', (string) $gallery_ids));
-    $anhang_html = '';
+    $ids = beitragseinreichung_parse_gallery_ids($gallery_ids);
 
-    foreach ($ids as $id) {
-        $img_url = wp_get_attachment_image($id, 'large');
-        if ($img_url) {
-            $anhang_html .= $img_url . '<br>';
-        }
+    if (empty($ids)) {
+        return;
     }
 
-    if ($anhang_html === '') {
+    $gallery_block = count($ids) > 1
+        ? beitragseinreichung_render_gallery_slider($ids)
+        : beitragseinreichung_render_single_gallery_image($ids[0]);
+
+    if ($gallery_block === '') {
         return;
     }
 
     $aktueller_content = get_post_field('post_content', $beitrag_id);
     wp_update_post([
         'ID' => $beitrag_id,
-        'post_content' => $aktueller_content . "\n\n" . '<hr><h3>Zusätzliche Bilder:</h3>' . "\n" . $anhang_html,
+        'post_content' => $aktueller_content . "\n\n" . $gallery_block,
     ]);
 }
 
@@ -65,7 +150,7 @@ function beitragseinreichung_sende_beitrag_benachrichtigung($beitrag_id, $titel,
     }
 
     $ki_info = $ki_aktiv ? 'Ja' : 'Nein';
-    $modell_info = $ki_aktiv ? $modell : '–';
+    $modell_info = $ki_aktiv ? beitrag_get_ai_model_display_name($modell) : '–';
 
     $mail_html = '<html><body>';
     $mail_html .= '<h2>Ein neuer Beitrag wurde eingereicht</h2>';

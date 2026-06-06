@@ -9,16 +9,21 @@ function beitragseinreichung_formular_anzeige()
 {
     $excerpt_aktiv = get_option('beitragseinreichung_excerpt_aktiv', 1);
     $ki_global_aktiv = get_option('beitragseinreichung_ki_aktiv');
+    $plugin_url = plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php');
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect parameter for the success notice.
+    $erfolg = isset($_GET['erfolg']) ? sanitize_text_field(wp_unslash($_GET['erfolg'])) : '';
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect parameter for the success notice.
+    $beitrag_id = isset($_GET['beitrag_id']) ? (int) $_GET['beitrag_id'] : 0;
 ?>
     <div class="wrap">
 
         <picture id="beitragseinreichung-logo">
-            <source srcset="<?php echo plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php') . 'img/banner-small.png'; ?>" media="(max-width: 768px)">
-            <img src="<?php echo plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php') . 'img/banner-big.png'; ?>" alt="AI Beitragseinreichung Logo" style="width: 100%; max-width: 800px; height: auto;">
+            <source srcset="<?php echo esc_url($plugin_url . 'img/banner-small.png'); ?>" media="(max-width: 768px)">
+            <img src="<?php echo esc_url($plugin_url . 'img/banner-big.png'); ?>" alt="AI Beitragseinreichung Logo" style="width: 100%; max-width: 800px; height: auto;">
         </picture>
 
-        <?php if (isset($_GET['erfolg']) && isset($_GET['beitrag_id'])):
-            $link = admin_url('post.php?post=' . (int) $_GET['beitrag_id'] . '&action=edit');
+        <?php if ($erfolg && $beitrag_id):
+            $link = admin_url('post.php?post=' . $beitrag_id . '&action=edit');
         ?>
             <div class="notice notice-success">
                 <p>Beitrag erfolgreich eingereicht! <a href="<?php echo esc_url($link); ?>" target="_blank">Beitrag anzeigen &rarr;</a></p>
@@ -105,8 +110,7 @@ function beitragseinreichung_formular_anzeige()
                             $standard_id = is_array($standard_ids) && count($standard_ids) > 0 ? $standard_ids[0] : null;
 
                             foreach ($kategorien as $kategorie) {
-                                $selected = ($kategorie->term_id == $standard_id) ? 'selected' : '';
-                                echo '<option value="' . esc_attr($kategorie->term_id) . '" ' . $selected . '>' . esc_html($kategorie->name) . '</option>';
+                                echo '<option value="' . esc_attr($kategorie->term_id) . '" ' . selected((int) $kategorie->term_id, (int) $standard_id, false) . '>' . esc_html($kategorie->name) . '</option>';
                             }
                             ?>
                         </select>
@@ -140,7 +144,7 @@ function beitragseinreichung_formular_anzeige()
             </div>
             <div id="lottie-loader" style="display: none;">
                 <lottie-player
-                    src="<?php echo plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php') . 'assets/lottie/ki-animation.json'; ?>"
+                    src="<?php echo esc_url($plugin_url . 'assets/lottie/ki-animation.json'); ?>"
                     background="transparent"
                     speed="1"
                     style="max-width: 35vw; height: auto;"

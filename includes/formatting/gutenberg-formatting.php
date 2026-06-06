@@ -5,7 +5,7 @@ defined('ABSPATH') || exit;
 /**
  * Entfernt Emojis aus einem Text.
  */
-function remove_emojis($string)
+function beitrag_remove_emojis($string)
 {
     return preg_replace('/[\x{1F600}-\x{1F64F}|\x{1F300}-\x{1F5FF}|\x{1F680}-\x{1F6FF}|\x{2600}-\x{26FF}|\x{2700}-\x{27BF}]+/u', '', $string);
 }
@@ -105,7 +105,7 @@ function beitrag_wandle_zu_gutenberg_blocks($text)
 /**
  * Rendert Zeilen als Gutenberg-Block.
  */
-function render_block_from_lines($lines)
+function beitrag_render_block_from_lines($lines)
 {
     $text = implode("\n", $lines);
     $text = trim($text);

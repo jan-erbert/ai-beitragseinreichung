@@ -8,19 +8,23 @@ defined('ABSPATH') || exit;
 function beitragseinreichung_einstellungen_anzeige()
 {
     $ist_admin = current_user_can('beitragseinreichung_admin');
-    if (isset($_POST['beitrag_einstellungen_nonce']) && wp_verify_nonce($_POST['beitrag_einstellungen_nonce'], 'speichern_beitrag_einstellungen')) {
+    $nonce = isset($_POST['beitrag_einstellungen_nonce']) ? sanitize_text_field(wp_unslash($_POST['beitrag_einstellungen_nonce'])) : '';
+    if ($nonce && wp_verify_nonce($nonce, 'speichern_beitrag_einstellungen')) {
         if (!current_user_can('beitragseinreichung_settings')) {
-            wp_die(__('Du hast keine Berechtigung, diese Einstellungen zu speichern.'));
+            wp_die(esc_html__('Du hast keine Berechtigung, diese Einstellungen zu speichern.'));
         }
 
         $kategorie = isset($_POST['standard_kategorie']) ? [(int) $_POST['standard_kategorie']] : [];
         $stilgruppen = [];
-        if (!empty($_POST['stilgruppe_label']) && !empty($_POST['stilgruppe_stil'])) {
-            foreach ($_POST['stilgruppe_label'] as $i => $label) {
+        $stilgruppe_labels = isset($_POST['stilgruppe_label']) ? array_map('sanitize_text_field', wp_unslash((array) $_POST['stilgruppe_label'])) : [];
+        $stilgruppe_stile = isset($_POST['stilgruppe_stil']) ? array_map('sanitize_textarea_field', wp_unslash((array) $_POST['stilgruppe_stil'])) : [];
+        $stilgruppe_ziele = isset($_POST['stilgruppe_ziel']) ? array_map('sanitize_text_field', wp_unslash((array) $_POST['stilgruppe_ziel'])) : [];
+        if (!empty($stilgruppe_labels) && !empty($stilgruppe_stile)) {
+            foreach ($stilgruppe_labels as $i => $label) {
                 $label = sanitize_text_field(wp_unslash($label));
-                $stil = sanitize_textarea_field(wp_unslash($_POST['stilgruppe_stil'][$i] ?? ''));
+                $stil = $stilgruppe_stile[$i] ?? '';
                 if (!empty($label) && !empty($stil)) {
-                    $ziel = sanitize_text_field(wp_unslash($_POST['stilgruppe_ziel'][$i] ?? ''));
+                    $ziel = $stilgruppe_ziele[$i] ?? '';
                     $stilgruppen[] = [
                         'label' => $label,
                         'stil' => $stil,
@@ -87,8 +91,7 @@ function beitragseinreichung_einstellungen_anzeige()
                             <option value="0">– Keine Auswahl –</option>
                             <?php
                             foreach ($kategorien as $kat) {
-                                $selected = ($standard_ids && $kat->term_id == $standard_ids[0]) ? 'selected' : '';
-                                echo '<option value="' . esc_attr($kat->term_id) . '" ' . $selected . '>' . esc_html($kat->name) . '</option>';
+                                echo '<option value="' . esc_attr($kat->term_id) . '" ' . selected($standard_ids && (int) $kat->term_id === (int) $standard_ids[0], true, false) . '>' . esc_html($kat->name) . '</option>';
                             }
                             ?>
                         </select>
@@ -98,16 +101,79 @@ function beitragseinreichung_einstellungen_anzeige()
                     <tr>
                         <th scope="row"><label for="empfaenger_user_ids">Benachrichtigungs-Empfänger</label></th>
                         <td>
-                            <div style="max-height: 250px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+                            <div class="beitrag-user-picker" style="max-width: 720px;">
+                                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                                    <input type="search" id="beitrag-user-filter" class="regular-text" placeholder="Benutzer suchen..." autocomplete="off">
+                                    <button type="button" class="button" id="beitrag-user-select-visible">Sichtbare auswählen</button>
+                                    <button type="button" class="button" id="beitrag-user-clear">Auswahl leeren</button>
+                                    <span class="description" id="beitrag-user-count"></span>
+                                </div>
+                                <div id="beitrag-user-list" style="max-height: 220px; overflow-y: auto; border: 1px solid #ccd0d4; background: #fff;">
                                 <?php foreach ($nutzer as $nutzer_obj): ?>
-                                    <label style="display: block; margin-bottom: 8px;">
+                                    <?php
+                                    $suchtext = strtolower($nutzer_obj->display_name . ' ' . $nutzer_obj->user_email);
+                                    ?>
+                                    <label class="beitrag-user-option" data-search="<?php echo esc_attr($suchtext); ?>" style="display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; border-bottom: 1px solid #f0f0f1;">
                                         <input type="checkbox" name="empfaenger_user_ids[]" value="<?php echo esc_attr($nutzer_obj->ID); ?>"
-                                            <?php checked(in_array($nutzer_obj->ID, $user_ids)); ?>>
-                                        <?php echo esc_html($nutzer_obj->display_name . ' (' . $nutzer_obj->user_email . ')'); ?>
+                                            <?php checked(in_array($nutzer_obj->ID, $user_ids, true)); ?>>
+                                        <span>
+                                            <strong><?php echo esc_html($nutzer_obj->display_name); ?></strong><br>
+                                            <span class="description"><?php echo esc_html($nutzer_obj->user_email); ?></span>
+                                        </span>
                                     </label>
                                 <?php endforeach; ?>
+                                </div>
                             </div>
                             <p class="description">Wähle einen oder mehrere Benutzer aus, die bei neuen Beiträgen benachrichtigt werden sollen.</p>
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    const filter = document.getElementById('beitrag-user-filter');
+                                    const options = Array.from(document.querySelectorAll('.beitrag-user-option'));
+                                    const count = document.getElementById('beitrag-user-count');
+                                    const selectVisible = document.getElementById('beitrag-user-select-visible');
+                                    const clear = document.getElementById('beitrag-user-clear');
+
+                                    function updateList() {
+                                        const query = filter.value.trim().toLowerCase();
+                                        let visible = 0;
+                                        let checked = 0;
+
+                                        options.forEach(option => {
+                                            const isVisible = !query || option.dataset.search.includes(query);
+                                            option.style.display = isVisible ? 'flex' : 'none';
+                                            if (isVisible) {
+                                                visible++;
+                                            }
+                                            if (option.querySelector('input').checked) {
+                                                checked++;
+                                            }
+                                        });
+
+                                        count.textContent = checked + ' ausgewählt, ' + visible + ' sichtbar';
+                                    }
+
+                                    filter.addEventListener('input', updateList);
+                                    options.forEach(option => {
+                                        option.querySelector('input').addEventListener('change', updateList);
+                                    });
+                                    selectVisible.addEventListener('click', function() {
+                                        options.forEach(option => {
+                                            if (option.style.display !== 'none') {
+                                                option.querySelector('input').checked = true;
+                                            }
+                                        });
+                                        updateList();
+                                    });
+                                    clear.addEventListener('click', function() {
+                                        options.forEach(option => {
+                                            option.querySelector('input').checked = false;
+                                        });
+                                        updateList();
+                                    });
+
+                                    updateList();
+                                });
+                            </script>
                         </td>
                     </tr>
                 <?php endif; ?>
@@ -312,24 +378,22 @@ function beitragseinreichung_einstellungen_anzeige()
                             <?php echo $ist_admin ? '' : 'disabled'; ?>
                             title="<?php echo esc_attr('Nur Admins können das Modell ändern.'); ?>">
                             <?php
-                            $modelle = beitrag_get_ai_model_profiles();
+                            $modelle = beitrag_get_enabled_ai_models();
                             $auswahl = beitrag_normalize_ai_model(get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
-                            foreach ($modelle as $profil) {
-                                $wert = $profil['model'];
-                                $label = $profil['label'];
-                                $beschreibung = $profil['description'];
-                                echo '<option value="' . esc_attr($wert) . '" data-description="' . esc_attr($beschreibung) . '" ' . selected($auswahl, $wert, false) . '>' . esc_html($label) . '</option>';
+                            foreach ($modelle as $modell => $modell_config) {
+                                $label = $modell_config['label'] ?? $modell;
+                                $beschreibung = $modell_config['description'] ?? '';
+                                echo '<option value="' . esc_attr($modell) . '" data-description="' . esc_attr($beschreibung) . '" ' . selected($auswahl, $modell, false) . '>' . esc_html($label . ' (' . $modell . ')') . '</option>';
                             }
                             ?>
                         </select>
-                        <p class="description">Welches OpenAI-Modell soll verwendet werden?</p>
+                        <p class="description">Welche freigeschaltete OpenAI-Modellvariante soll verwendet werden?</p>
                     </td>
                 </tr>
                 <tr>
                     <th scope="row">Hinweis</th>
                     <td>
                         <p><strong>Modell:</strong> <span id="ki-hinweis-modell"></span></p>
-                        <p><strong>Limits:</strong> Du hast ein Soft-Limit von 3 €, ein Hard-Limit von 5 € in deinem OpenAI-Konto.</p>
                     </td>
                 </tr>
                 <tr>
@@ -364,7 +428,7 @@ function beitragseinreichung_einstellungen_anzeige()
                             $symbol = $status['status'] === 'erfolgreich' ? '✅' : '❌';
                             $farbe = $status['status'] === 'erfolgreich' ? 'green' : 'red';
                             echo '<p><strong>Letzter Test:</strong> ' . esc_html($zeit) . '</p>';
-                            echo '<p style="color:' . $farbe . ';">' . $symbol . ' ' . esc_html($status['info']) . '</p>';
+                            echo '<p style="color:' . esc_attr($farbe) . ';">' . esc_html($symbol) . ' ' . esc_html($status['info']) . '</p>';
                         }
                         ?>
                     </td>
@@ -408,7 +472,7 @@ function beitragseinreichung_einstellungen_anzeige()
 
                 $.post(ajaxurl, {
                     action: 'beitragseinreichung_test_openai_jetzt',
-                    _wpnonce: '<?php echo wp_create_nonce('test_openai_ajax'); ?>'
+                    _wpnonce: '<?php echo esc_js(wp_create_nonce('test_openai_ajax')); ?>'
                 }, function(response) {
                     const color = response.success ? 'green' : 'red';
                     const icon = response.success ? '✅ ' : '❌ ';

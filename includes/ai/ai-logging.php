@@ -9,7 +9,7 @@ add_action('wp_ajax_beitragseinreichung_ki_log_loeschen', function () {
     }
     check_ajax_referer('ki_log_loeschen');
 
-    $index = isset($_POST['index']) ? (int) $_POST['index'] : -1;
+    $index = isset($_POST['index']) ? (int) sanitize_text_field(wp_unslash($_POST['index'])) : -1;
     $logs = get_option('beitragseinreichung_ki_logs', []);
 
     if ($index >= 0 && $index < count($logs)) {
@@ -77,7 +77,7 @@ function beitragseinreichung_ki_log_anzeige()
         echo '<tr>';
         echo '<td>' . esc_html($log['zeit']) . '</td>';
         echo '<td><a href="' . esc_url($post_link) . '">' . esc_html($log['titel']) . '</a></td>';
-        echo '<td>' . $autor_name . '</td>';
+        echo '<td>' . esc_html($autor_name) . '</td>';
         echo '<td>';
         echo '<button class="button ki-log-toggle" data-index="' . esc_attr($index) . '">Anzeigen</button>';
         if (current_user_can('beitragseinreichung_admin')) {
@@ -95,7 +95,8 @@ function beitragseinreichung_ki_log_anzeige()
         if (!empty($log['excerpt'])) {
             echo '<hr><strong>Textauszug:</strong><br>' . nl2br(esc_html($log['excerpt'])) . '<br><br>';
         }
-        echo '<br><br><strong>Verwendetes Modell:</strong> ' . esc_html($log['modell'] ?? 'unbekannt');
+        $modell = !empty($log['modell']) ? beitrag_get_ai_model_display_name($log['modell']) : 'unbekannt';
+        echo '<br><br><strong>Verwendetes Modell:</strong> ' . esc_html($modell);
         $stilgruppe = isset($log['stilgruppe']) && trim($log['stilgruppe']) !== '' ? $log['stilgruppe'] : '<unbekannt>';
         echo '<br><strong>Stilgruppe:</strong> ' . esc_html($stilgruppe);
 
@@ -121,7 +122,7 @@ function beitragseinreichung_ki_log_anzeige()
             $.post(ajaxurl, {
                 action: "beitragseinreichung_ki_log_loeschen",
                 index: index,
-                _wpnonce: "' . wp_create_nonce('ki_log_loeschen') . '"
+                _wpnonce: "' . esc_js(wp_create_nonce('ki_log_loeschen')) . '"
             }, function(response){
                 if (response.success) {
                     $("#ki-log-" + index).prev().remove(); // Tabellenzeile

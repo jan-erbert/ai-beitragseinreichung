@@ -6,16 +6,16 @@ defined('ABSPATH') || exit;
 add_action('admin_init', function () {
     if (
         isset($_POST['beitrag_nonce']) &&
-        wp_verify_nonce($_POST['beitrag_nonce'], 'beitrag_einreichen') &&
+        wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['beitrag_nonce'])), 'beitrag_einreichen') &&
         current_user_can('beitragseinreichung_submit')
     ) {
         // Globale Fehler-Variable zur Erkennung von Problemen bei der KI-Optimierung
         global $beitrag_ki_fehler;
         $beitrag_ki_fehler = false;
 
-        $titel = sanitize_text_field(wp_unslash($_POST['beitrag_titel']));
-        $inhalt = wp_kses_post(wp_unslash($_POST['beitrag_inhalt']));
-        $tags = sanitize_text_field(wp_unslash($_POST['beitrag_tags']));
+        $titel = sanitize_text_field(wp_unslash($_POST['beitrag_titel'] ?? ''));
+        $inhalt = wp_kses_post(wp_unslash($_POST['beitrag_inhalt'] ?? ''));
+        $tags = sanitize_text_field(wp_unslash($_POST['beitrag_tags'] ?? ''));
         $original_titel = $titel;
         $original_inhalt = $inhalt;
         $modell = '';
@@ -43,7 +43,7 @@ add_action('admin_init', function () {
         $titel = beitrag_bereinige_titel_text($titel, $original_titel);
 
         // Beitrag anlegen
-        $bereinigter_slug = sanitize_title(remove_emojis($titel));
+        $bereinigter_slug = sanitize_title(beitrag_remove_emojis($titel));
 
         $beitrag_id = wp_insert_post([
             'post_title'   => $titel,
@@ -83,7 +83,8 @@ add_action('admin_init', function () {
 
         // Galeriebilder einfügen
         if (!empty($_POST['gallery_ids'])) {
-            beitragseinreichung_haenge_galeriebilder_an($beitrag_id, wp_unslash($_POST['gallery_ids']));
+            $gallery_ids = sanitize_text_field(wp_unslash($_POST['gallery_ids']));
+            beitragseinreichung_haenge_galeriebilder_an($beitrag_id, $gallery_ids);
         }
 
 

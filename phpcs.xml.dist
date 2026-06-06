@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<ruleset name="AI Beitragseinreichung">
+    <description>PHPCS-Regeln fuer das WordPress-Plugin AI Beitragseinreichung.</description>
+
+    <file>wp-form.php</file>
+    <file>includes</file>
+
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+    <exclude-pattern>wiki/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+
+    <config name="testVersion" value="7.4-"/>
+
+    <rule ref="WordPress.Security"/>
+    <rule ref="WordPress.WP.I18n"/>
+    <rule ref="WordPress.WP.EnqueuedResources"/>
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="beitrag"/>
+                <element value="beitragseinreichung"/>
+                <element value="register_ai_beitragseinreichung"/>
+            </property>
+        </properties>
+    </rule>
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="beitragseinreichung_submit"/>
+                <element value="beitragseinreichung_settings"/>
+                <element value="beitragseinreichung_admin"/>
+            </property>
+        </properties>
+    </rule>
+    <rule ref="PHPCompatibilityWP"/>
+</ruleset>

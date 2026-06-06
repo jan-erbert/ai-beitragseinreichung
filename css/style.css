@@ -50,6 +50,31 @@
     margin-top: 10px;
 }
 
+.gallery-preview-count {
+    font-weight: 600;
+    margin: 0 0 8px;
+}
+
+.gallery-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.gallery-preview-grid img {
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    height: 72px;
+    object-fit: cover;
+    width: 72px;
+}
+
+.gallery-preview-hint {
+    color: #50575e;
+    margin: 6px 0 0;
+}
+
 #beitragseinreichung-formular .button {
     margin-top: 5px;
 }

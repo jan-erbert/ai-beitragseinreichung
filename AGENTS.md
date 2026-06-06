@@ -75,6 +75,11 @@ Bei jeder Aenderung an Formularen, AJAX-Endpunkten oder gespeicherten Optionen p
 - Keine produktiven `var_dump()`, `print_r()` oder Debug-Ausgaben im finalen Code.
 - Inline-Kommentare nur fuer echte Fachlogik oder nicht offensichtliche Randfaelle.
 - PHP-Dateien mit `defined('ABSPATH') || exit;` schuetzen, sofern sie direkt ladbare Pluginmodule sind.
+- Projektlokale PHP-Tools werden ueber Composer verwaltet.
+- `composer run lint` prueft PHP-Syntax.
+- `composer run phpcs` prueft projektlokal definierte PHPCS-Regeln.
+- `composer run phpcbf` darf fuer automatisch reparierbare PHPCS-Befunde genutzt werden, aber nicht als blinde Gesamtformatierung fuer das ganze historische Projekt.
+- Das aktuelle `phpcs.xml.dist` ist bewusst auf Sicherheit, WordPress-relevante Checks und Kompatibilitaet fokussiert; reine Stilregeln werden nur schrittweise verschaerft.
 
 ---
 
@@ -112,6 +117,11 @@ Bei jeder Aenderung an Formularen, AJAX-Endpunkten oder gespeicherten Optionen p
 - `.vscode/sftp.json` nur anlegen, wenn klar ist, dass sie lokal ignoriert bleibt oder keine Secrets enthaelt.
 - Fuer teilbare VS-Code-Konfigurationen nur unkritische Einstellungen versionieren.
 - Deploy-/Sync-Einstellungen duerfen keine produktiven Daten loeschen oder ueberschreiben, ohne dass dies ausdruecklich bestaetigt wurde.
+- Nach relevanten Codeaenderungen den Serverstand mitdenken und bei Bedarf synchronisieren.
+- Sync-Richtung ist ausschliesslich lokal nach remote. Keine Remote-Dateien als Quelle fuer lokalen Code verwenden, ausser der Nutzer fordert dies ausdruecklich.
+- Beim FTP-Sync immer lokale Ausschluesse beachten: `.git`, `.vscode`, `.agents`, `.codex`, `vendor`, `node_modules`, `wiki`, Logs, ZIPs und lokale Cache-Dateien.
+- Secrets aus `.vscode/sftp.json` niemals ausgeben oder committen.
+- Nach einem manuellen FTP-Sync eine kurze Kontrolle melden: Anzahl Uploads, Loeschungen, fehlende Dateien und extra Remote-Dateien.
 
 ---
 
@@ -122,11 +132,17 @@ Nach Aenderungen passend pruefen:
 ```bash
 git status
 git diff
-php -l wp-form.php
-find includes -name '*.php' -print0 | xargs -0 -n1 php -l
+composer run lint
+composer run phpcs
 ```
 
-Wenn `php` lokal nicht verfuegbar ist, dies offen nennen und mindestens Diff sowie betroffene Kontrollfluesse manuell pruefen.
+Wenn Composer-Abhaengigkeiten fehlen, zuerst ausfuehren:
+
+```bash
+composer install
+```
+
+Wenn `php` oder Composer lokal nicht verfuegbar ist, dies offen nennen und mindestens Diff sowie betroffene Kontrollfluesse manuell pruefen.
 
 Bei WordPress-spezifischen Aenderungen zusaetzlich im Adminbereich testen:
 

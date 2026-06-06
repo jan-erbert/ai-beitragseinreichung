@@ -1,0 +1,23 @@
+{
+  "name": "jan-erbert/ai-beitragseinreichung",
+  "description": "Development tooling for the AI Beitragseinreichung WordPress plugin.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require-dev": {
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.1",
+    "php-stubs/wordpress-stubs": "^7.0",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "wp-coding-standards/wpcs": "^3.2"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "lint": "php -l wp-form.php && find includes -name '*.php' -print0 | xargs -0 -n1 php -l",
+    "phpcs": "phpcs",
+    "phpcbf": "phpcbf"
+  }
+}

@@ -1,5 +1,39 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.2.1 – 2026-06-06
+
+**Improved:**
+
+- KI-Modellverwaltung weiter zentralisiert: freigeschaltete Modelle, Standardmodell und Modellbeschreibungen werden jetzt gemeinsam in `includes/ai/ai-models.php` gepflegt.
+- Die Einstellungsseite zeigt künftig direkt freigeschaltete OpenAI-Modelle statt abstrakter Profile; ungültige oder veraltete gespeicherte Werte fallen automatisch auf das Standardmodell zurück.
+- KI-Protokoll und Benachrichtigungsmail zeigen verwendete Modelle verständlicher mit Anzeigename und technischem Modellnamen an.
+- OpenAI-Aufrufe nutzen jetzt die empfohlene Responses API statt Chat Completions.
+- Strukturierte KI-Antworten fuer Titel, Inhalt und Textauszug werden jetzt per JSON Schema angefordert.
+- Modellbezogene Request-Optionen wie `reasoning.effort` werden zentral pro Modell konfiguriert.
+- Admin-Menü, OpenAI-AJAX-Test, KI-Fehlerbenachrichtigung und Custom Post Status sind aus `wp-form.php` in passende Module ausgelagert.
+- Formular-JavaScript fuer Media Picker, Validierung und Erfolgs-/Fehler-Overlays ist aus `wp-form.php` in ein Admin-Modul ausgelagert.
+- Projektlokales PHP-Tooling mit Composer, PHPCS, WordPress-Sicherheitsregeln und PHPCompatibilityWP eingerichtet.
+- Lokale `AGENTS.md` um Composer-/PHPCS-/PHPCBF-Arbeitsregeln ergaenzt.
+- Lokale `AGENTS.md` um FTP-Sync-Regeln ergaenzt: ausschliesslich lokal nach remote und mit festen Ausschluessen.
+- WordPress-Stubs und VS-Code-Einstellungen fuer lokale PHP-/PHPCS-Diagnosen ergaenzt.
+
+**Fixed:**
+
+- Mehrere PHPCS-Sicherheitsbefunde bereinigt, u. a. Nonce-Unslash, fehlendes Escaping und unpräfixierte globale Hilfsfunktionen.
+- OpenAI-Verbindungstest nutzt jetzt das Mindestlimit der Responses API fuer `max_output_tokens`.
+- Statischen OpenAI-Konto-Limit-Hinweis aus den Einstellungen entfernt.
+- `gpt-5.5` in der zentralen Modellkonfiguration fuer die Auswahl freigeschaltet.
+- Weitere Reserve-Modelle deaktiviert in der zentralen Modellkonfiguration hinterlegt.
+- Benachrichtigungs-Empfaenger in den Einstellungen kompakter gemacht: Suche, Sichtbar-Auswahl, Auswahl leeren und Zaehler ergaenzt.
+- VS-Code-Diagnosen weiter bereinigt: WordPress-Stubs absolut eingebunden, doppelte PHP-Undefined-Function-Pruefung deaktiviert und Modellhelfer per PHPDoc typisiert.
+- Versionshinweis fuer Version 1.2.1 ergaenzt, der pro Nutzer einmal im Plugin-Adminbereich angezeigt wird und die Verbesserungen nutzerfreundlich zusammenfasst.
+- Zusatzbilder werden im Formular mit Vorschau angezeigt und im Beitrag sauber als Einzelbild oder Galerie-Slider eingefuegt.
+- Link zu den Plugin-Einstellungen im Versionshinweis wird nur noch Nutzern mit Einstellungsrecht angezeigt.
+
+**Notes:**
+
+- Naechster geplanter Entwicklungsschritt fuer Version 1.2.2: Vorschau-Schritt vor dem finalen Speichern, inklusive Eingabefeld fuer konkrete Aenderungswuensche wie „Text kuerzer schreiben“ oder „freundlicher formulieren“.
+
 ## Version 1.2.0 – 2026-06-06
 
 **Fixed:**

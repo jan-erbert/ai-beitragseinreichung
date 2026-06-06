@@ -3,6 +3,91 @@
 defined('ABSPATH') || exit;
 
 /**
+ * Ruft die OpenAI Responses API auf.
+ */
+function beitrag_openai_responses_request($api_key, $request_body, $timeout = 90)
+{
+    return wp_remote_post('https://api.openai.com/v1/responses', [
+        'headers' => [
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $api_key,
+        ],
+        'body' => wp_json_encode($request_body),
+        'timeout' => $timeout,
+    ]);
+}
+
+/**
+ * Liest den Text aus einer Responses-API-Antwort aus.
+ */
+function beitrag_openai_extract_response_text($body)
+{
+    if (!is_array($body)) {
+        return '';
+    }
+
+    if (isset($body['output_text']) && is_string($body['output_text'])) {
+        return $body['output_text'];
+    }
+
+    foreach (($body['output'] ?? []) as $output_item) {
+        foreach (($output_item['content'] ?? []) as $content_item) {
+            if (isset($content_item['text']) && is_string($content_item['text'])) {
+                return $content_item['text'];
+            }
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Liest eine Fehlermeldung aus einer OpenAI-Antwort aus.
+ */
+function beitrag_openai_extract_error_message($body, $fallback = 'Unbekannter OpenAI-Fehler.')
+{
+    if (!is_array($body)) {
+        return $fallback;
+    }
+
+    if (!empty($body['error']['message'])) {
+        return (string) $body['error']['message'];
+    }
+
+    if (!empty($body['message'])) {
+        return (string) $body['message'];
+    }
+
+    return $fallback;
+}
+
+/**
+ * Liefert das JSON-Schema fuer optimierte Beitraege.
+ */
+function beitrag_ki_get_optimized_post_schema()
+{
+    return [
+        'type' => 'object',
+        'additionalProperties' => false,
+        'properties' => [
+            'title' => [
+                'type' => 'string',
+                'description' => 'Ein kurzer WordPress-Beitragstitel ohne Markdown oder HTML.',
+            ],
+            'content' => [
+                'type' => 'string',
+                'description' => 'Der optimierte Beitragstext.',
+            ],
+            'excerpt' => [
+                'type' => 'string',
+                'description' => 'Optionaler Textauszug oder leerer String.',
+            ],
+        ],
+        'required' => ['title', 'content', 'excerpt'],
+    ];
+}
+
+/**
  * Optimiert Beitragstitel, Inhalt und optional Textauszug in einem KI-Aufruf.
  */
 function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgruppe_label, $excerpt_auto = false)
@@ -24,25 +109,30 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
     $stil = beitrag_ki_ermittle_stil_prompt($stilgruppe_label);
     $prompt = beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz, $excerpt_auto);
 
-    $request_body = wp_json_encode([
+    $request_body = array_merge([
         'model' => $modell,
-        'messages' => [
-            ['role' => 'system', 'content' => 'Du bist ein redaktioneller WordPress-Assistent. Antworte nur mit validem JSON.'],
-            ['role' => 'user', 'content' => $prompt],
+        'input' => [
+            [
+                'role' => 'system',
+                'content' => 'Du bist ein redaktioneller WordPress-Assistent. Antworte exakt im geforderten JSON-Schema.',
+            ],
+            [
+                'role' => 'user',
+                'content' => $prompt,
+            ],
         ],
-        'temperature' => 0.7,
-        'max_tokens' => 3000,
-        'response_format' => ['type' => 'json_object'],
-    ]);
+        'text' => [
+            'format' => [
+                'type' => 'json_schema',
+                'name' => 'optimized_post',
+                'strict' => true,
+                'schema' => beitrag_ki_get_optimized_post_schema(),
+            ],
+        ],
+        'max_output_tokens' => 3000,
+    ], beitrag_get_ai_model_request_options($modell));
 
-    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
-        'headers' => [
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $api_key,
-        ],
-        'body' => $request_body,
-        'timeout' => 90,
-    ]);
+    $response = beitrag_openai_responses_request($api_key, $request_body);
 
     if (is_wp_error($response)) {
         $beitrag_ki_fehler = true;
@@ -57,7 +147,20 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
     }
 
     $body = json_decode(wp_remote_retrieve_body($response), true);
-    $content = $body['choices'][0]['message']['content'] ?? '';
+    $code = wp_remote_retrieve_response_code($response);
+    if ($code < 200 || $code >= 300) {
+        $beitrag_ki_fehler = true;
+        $fehlermeldung = beitrag_openai_extract_error_message($body, 'OpenAI-Fehlercode: ' . $code);
+        beitrag_ki_admin_benachrichtigen($fehlermeldung);
+
+        return [
+            'title' => $titel,
+            'content' => $inhalt,
+            'excerpt' => '',
+        ];
+    }
+
+    $content = beitrag_openai_extract_response_text($body);
     $data = beitrag_ki_parse_json_antwort($content);
 
     if (!$data || empty($data['title']) || empty($data['content'])) {
@@ -93,12 +196,10 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
         return $text;
     }
 
-    $stilgruppe_label = !empty($_POST['beitrag_ki_stilgruppe']) ? sanitize_text_field($_POST['beitrag_ki_stilgruppe']) : '';
-    $stil = beitrag_ki_ermittle_stil_prompt($stilgruppe_label);
+    $stil = beitrag_ki_ermittle_stil_prompt('');
 
 
     if (stripos($ziel, 'Beitragstitel') !== false) {
-        $temperature = 0.3;
         $system_message = "Du formulierst kurze WordPress-Beitragstitel. Gib nur einen einzelnen Titel zurueck.";
         $prompt = <<<EOT
         Formuliere aus dem folgenden Titel einen kurzen, klaren WordPress-Beitragstitel.
@@ -115,7 +216,6 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
         $text
         EOT;
     } elseif (stripos($ziel, 'Textauszug') !== false) {
-        $temperature = 0.4;
         $system_message = "Du bist ein professioneller Textoptimierer. Erfinde niemals Inhalte hinzu. Gib nur reale Zusammenfassungen basierend auf dem übergebenen Text zurück.";
         $prompt = <<<EOT
         Bitte fasse den folgenden optimierten Blogbeitrag in 1–2 spannenden, kurzen Sätzen zusammen. 
@@ -128,7 +228,6 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
         $text
         EOT;
     } else {
-        $temperature = 0.7;
         $system_message = "Du bist ein professioneller Textoptimierer für Blogbeiträge. Gib nur den gewünschten Text zurück, ohne Erklärungen oder Kommentare.";
         $prompt = <<<EOT
         Bitte überarbeite den folgenden $ziel sprachlich und stilistisch. Gib **nur den überarbeiteten Text** zurück – ohne zusätzliche Hinweise, ohne Formatierungen, ohne Gutenberg-Kommentare.
@@ -145,24 +244,22 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
         $prompt .= "\n\nZusätzliche Hinweise: $zusatz";
     }
 
-    $request_body = json_encode([
+    $request_body = array_merge([
         'model' => $modell,
-        'messages' => [
-            ['role' => 'system', 'content' => $system_message],
-            ['role' => 'user', 'content' => $prompt],
+        'input' => [
+            [
+                'role' => 'system',
+                'content' => $system_message,
+            ],
+            [
+                'role' => 'user',
+                'content' => $prompt,
+            ],
         ],
-        'temperature' => $temperature,
-        'max_tokens' => 2048,
-    ]);
+        'max_output_tokens' => 2048,
+    ], beitrag_get_ai_model_request_options($modell));
 
-    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
-        'headers' => [
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Bearer ' . $api_key,
-        ],
-        'body' => $request_body,
-        'timeout' => 90,
-    ]);
+    $response = beitrag_openai_responses_request($api_key, $request_body);
 
     if (is_wp_error($response)) {
         $beitrag_ki_fehler = true;
@@ -175,7 +272,17 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
     }
 
     $body = json_decode(wp_remote_retrieve_body($response), true);
-    if (!isset($body['choices'][0]['message']['content'])) {
+    $code = wp_remote_retrieve_response_code($response);
+    if ($code < 200 || $code >= 300) {
+        $beitrag_ki_fehler = true;
+        $fehlermeldung = beitrag_openai_extract_error_message($body, 'OpenAI-Fehlercode: ' . $code);
+        beitrag_ki_admin_benachrichtigen($fehlermeldung);
+
+        return $text;
+    }
+
+    $content = beitrag_openai_extract_response_text($body);
+    if ($content === '') {
         $beitrag_ki_fehler = true;
 
         // Admin benachrichtigen
@@ -184,7 +291,7 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
         return $text;
     }
 
-    return $body['choices'][0]['message']['content'];
+    return $content;
 }
 
 /**
@@ -210,20 +317,16 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
         return $status;
     }
 
-    $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
-        'headers' => [
-            'Authorization' => 'Bearer ' . $api_key,
-            'Content-Type' => 'application/json',
-        ],
-        'body' => json_encode([
-            'model' => $modell,
-            'messages' => [
-                ['role' => 'user', 'content' => 'Sag nur: ✅'],
+    $response = beitrag_openai_responses_request($api_key, array_merge([
+        'model' => $modell,
+        'input' => [
+            [
+                'role' => 'user',
+                'content' => 'Sag nur: OK',
             ],
-            'max_tokens' => 5,
-        ]),
-        'timeout' => 20,
-    ]);
+        ],
+        'max_output_tokens' => 16,
+    ], beitrag_get_ai_model_request_options($modell)), 20);
 
     if (is_wp_error($response)) {
         $status['status'] = 'netzwerkfehler';
@@ -232,14 +335,15 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
     } else {
         $code = wp_remote_retrieve_response_code($response);
         $body = json_decode(wp_remote_retrieve_body($response), true);
+        $content = beitrag_openai_extract_response_text($body);
 
-        if ($code === 200 && isset($body['choices'][0]['message']['content'])) {
+        if ($code === 200 && $content !== '') {
             $status['status'] = 'erfolgreich';
             $status['info'] = 'Verbindung erfolgreich.';
             // Nur bei Erfolg keine Änderung am Aktiv-Status
         } else {
             $status['status'] = 'fehler';
-            $status['info'] = 'Fehlercode: ' . $code;
+            $status['info'] = beitrag_openai_extract_error_message($body, 'Fehlercode: ' . $code);
             update_option('beitragseinreichung_ki_aktiv', 0); // Deaktivieren bei Fehler
         }
     }
