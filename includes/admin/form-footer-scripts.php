@@ -49,6 +49,173 @@ add_action('admin_footer', function () {
                 $('#beitrag_excerpt_auto').prop('checked', true);
             }
 
+            function markPreviewDirty() {
+                $('#beitrag_preview_ready').val('0');
+                $('#beitrag_preview_title').val('');
+                $('#beitrag_preview_content').val('');
+                $('#beitrag_preview_excerpt').val('');
+                $('#beitrag_preview_original_title').val('');
+                $('#beitrag_preview_original_content').val('');
+                $('#beitrag_preview_ki_active').val('0');
+                $('#beitrag_preview_model').val('');
+                $('#beitrag_preview_ai_hint').val('');
+                $('#beitrag_preview_style_group').val('');
+                $('#beitrag-preview-button').prop('hidden', false);
+            }
+
+            function validateSubmissionForm() {
+                if ($('#beitrag_ki_individuell').is(':checked') && !$('#beitrag_ki_stilgruppe').val()) {
+                    alert('Bitte wähle einen Stil aus der Liste.');
+                    return false;
+                }
+
+                const title = $('#beitrag_titel').val().trim();
+                const content = $('#beitrag_inhalt').val().trim();
+                const tags = $('#beitrag_tags').val().trim();
+
+                if (!title || !content || !tags) {
+                    alert('Bitte fülle alle Pflichtfelder aus: Titel, Inhalt und Schlagwörter.');
+                    return false;
+                }
+
+                return true;
+            }
+
+            function setPreviewLoading(isLoading, useKiLoader) {
+                $('#beitrag-preview-button, #beitrag-preview-revise-button').prop('disabled', isLoading);
+                if (isLoading) {
+                    if (useKiLoader) {
+                        $('#lottie-loader').fadeIn();
+                        $('#submit-loader').hide();
+                    } else {
+                        $('#submit-loader').fadeIn();
+                        $('#lottie-loader').hide();
+                    }
+                } else {
+                    $('#submit-loader').fadeOut();
+                    $('#lottie-loader').fadeOut();
+                }
+            }
+
+            function fillPreviewFields(preview) {
+                $('#beitrag_preview_ready').val('1');
+                $('#beitrag_preview_title').val(preview.title || '');
+                $('#beitrag_preview_content').val(preview.content || '');
+                $('#beitrag_preview_excerpt').val(preview.excerpt || '');
+                $('#beitrag_preview_original_title').val(preview.original_title || '');
+                $('#beitrag_preview_original_content').val(preview.original_content || '');
+                $('#beitrag_preview_ki_active').val(preview.ki_active ? '1' : '0');
+                $('#beitrag_preview_model').val(preview.model || '');
+                $('#beitrag_preview_ai_hint').val(preview.ai_hint || '');
+                $('#beitrag_preview_style_group').val(preview.style_group || '');
+            }
+
+            function renderPreview(preview) {
+                const metaParts = [];
+                if (preview.category_name) {
+                    metaParts.push('Kategorie: ' + preview.category_name);
+                }
+                if (preview.tags) {
+                    metaParts.push('Schlagwörter: ' + preview.tags);
+                }
+                if (preview.ki_active) {
+                    metaParts.push('KI überarbeitet');
+                }
+
+                $('#beitrag-preview-meta').text(metaParts.join(' · '));
+                $('#beitrag-preview-title').text(preview.title || '');
+                $('#beitrag-preview-featured-image').html(preview.featured_image_html || '');
+                $('#beitrag-preview-body').html(preview.content_html || '');
+                $('#beitrag-preview-gallery').html(preview.gallery_html || '');
+
+                if (preview.excerpt) {
+                    $('#beitrag-preview-excerpt').html('<p class="beitrag-preview__excerpt">' + $('<div>').text(preview.excerpt).html() + '</p>');
+                } else {
+                    $('#beitrag-preview-excerpt').empty();
+                }
+
+                $('#beitrag-preview-panel').prop('hidden', false);
+                $('#beitrag-preview-button').prop('hidden', true);
+                $('#beitrag-submit-final').prop('disabled', false);
+                $('html, body').animate({
+                    scrollTop: $('#beitrag-preview-panel').offset().top - 40
+                }, 400);
+            }
+
+            function createPreview(includeChangeRequest) {
+                if (!validateSubmissionForm()) {
+                    return;
+                }
+
+                const form = document.getElementById('beitragseinreichung-formular');
+                const formData = new FormData(form);
+                formData.append('action', 'beitragseinreichung_preview_beitrag');
+                [
+                    'beitrag_preview_ready',
+                    'beitrag_preview_title',
+                    'beitrag_preview_content',
+                    'beitrag_preview_excerpt',
+                    'beitrag_preview_original_title',
+                    'beitrag_preview_original_content',
+                    'beitrag_preview_ki_active',
+                    'beitrag_preview_model',
+                    'beitrag_preview_ai_hint',
+                    'beitrag_preview_style_group'
+                ].forEach(function(fieldName) {
+                    formData.delete(fieldName);
+                });
+
+                if (!includeChangeRequest) {
+                    formData.set('beitrag_preview_change_request', '');
+                }
+
+                setPreviewLoading(true, $('#beitrag_ki_individuell').is(':checked'));
+
+                window.fetch(window.ajaxurl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (!result.success) {
+                            const message = result.data && result.data.message ? result.data.message : 'Die Vorschau konnte nicht erstellt werden.';
+                            alert(message);
+                            return;
+                        }
+
+                        fillPreviewFields(result.data.preview);
+                        renderPreview(result.data.preview);
+                    })
+                    .catch(() => {
+                        alert('Die Vorschau konnte nicht erstellt werden.');
+                    })
+                    .finally(() => {
+                        setPreviewLoading(false, false);
+                    });
+            }
+
+            $('#beitrag-preview-button').on('click', function() {
+                createPreview(false);
+            });
+
+            $('#beitrag-preview-revise-button').on('click', function() {
+                if (!$('#beitrag_ki_individuell').is(':checked')) {
+                    alert('Bitte aktiviere die automatische Textverbesserung, um Änderungswünsche an die KI zu senden.');
+                    return;
+                }
+
+                createPreview(true);
+            });
+
+            $('#beitragseinreichung-formular').on('input change', 'input, textarea, select', function(e) {
+                if ($(e.target).closest('#beitrag-preview-panel').length) {
+                    return;
+                }
+
+                markPreviewDirty();
+            });
+
             $('#select_beitragsbild').on('click', function(e) {
                 e.preventDefault();
                 if (frame_featured) {
@@ -68,6 +235,7 @@ add_action('admin_footer', function () {
                     const attachment = frame_featured.state().get('selection').first().toJSON();
                     $('#beitragsbild_id').val(attachment.id);
                     $('#beitragsbild_preview').html('<img src="' + attachment.sizes.thumbnail.url + '" style="max-width:150px;">');
+                    markPreviewDirty();
                 });
 
                 frame_featured.open();
@@ -93,10 +261,14 @@ add_action('admin_footer', function () {
                     const ids = attachments.map(att => att.id).join(',');
                     const preview = $('#gallery_preview').empty();
                     $('#gallery_ids').val(ids);
+                    markPreviewDirty();
 
                     if (!attachments.length) {
+                        $('#clear_gallery').prop('hidden', true);
                         return;
                     }
+
+                    $('#clear_gallery').prop('hidden', false);
 
                     $('<p />', {
                         class: 'gallery-preview-count',
@@ -128,23 +300,25 @@ add_action('admin_footer', function () {
                 frame_gallery.open();
             });
 
+            $('#clear_gallery').on('click', function(e) {
+                e.preventDefault();
+                $('#gallery_ids').val('');
+                $('#gallery_preview').empty();
+                $('#clear_gallery').prop('hidden', true);
+                markPreviewDirty();
+
+                if (frame_gallery) {
+                    frame_gallery.state().get('selection').reset();
+                }
+            });
+
             $(document).on('submit', '#beitragseinreichung-formular', function(e) {
-                if ($('#beitrag_ki_individuell').is(':checked') && !$('#beitrag_ki_stilgruppe').val()) {
-                    alert('Bitte wähle einen Stil aus der Liste.');
+                if (!validateSubmissionForm()) {
                     e.preventDefault();
                     return;
                 }
 
-                const title = $('#beitrag_titel').val().trim();
-                const content = $('#beitrag_inhalt').val().trim();
-                const tags = $('#beitrag_tags').val().trim();
                 const hasImage = $('#beitragsbild_id').val();
-
-                if (!title || !content || !tags) {
-                    alert('Bitte fülle alle Pflichtfelder aus: Titel, Inhalt und Schlagwörter.');
-                    e.preventDefault();
-                    return;
-                }
 
                 let message = "Möchtest du den Beitrag wirklich einreichen?";
                 if (!hasImage) {

@@ -1,5 +1,24 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.2.2 – 2026-06-07
+
+**Added:**
+
+- Vorschau-Schritt fuer Beitragseinreichungen begonnen: Beitraege koennen vor dem finalen Speichern per AJAX vorbereitet und geprueft werden.
+- Eingabefeld fuer konkrete Aenderungswuensche in der Vorschau ergaenzt, z. B. „Text kuerzer schreiben“ oder „freundlicher formulieren“.
+- Finales Speichern uebernimmt vorbereitete Vorschauwerte, damit die KI nicht ungewollt doppelt laeuft.
+- Benachrichtigungsmail fuer neue Beitraege als strukturierte Vorschau mit Metadaten, Beitragsbild, Textauszug, Inhalt und Zusatzbildern ueberarbeitet.
+- KI-Protokoll als kompaktere Liste mit Detail-Popup und formatierter optimierter Vorschau ueberarbeitet.
+
+**Fixed:**
+
+- Vorschau-AJAX wird nicht mehr versehentlich vom finalen Speichern verarbeitet; dadurch werden Mail, KI-Protokoll und Beitragserstellung erst beim finalen Einreichen ausgefuehrt.
+- Zusatzbilder koennen im Formular wieder vollstaendig entfernt werden.
+- Vorschau nutzt bei aktiver KI das KI-Lottie, blendet den Vorschau-erstellen-Button nach erfolgreicher Vorschau aus und rendert einfache Markdown-Formatierungen wie Fetttext.
+- Direkte Beitragseinreichung ohne vorherige Vorschau wieder erlaubt; Vorschau bleibt optional.
+- Vorschau-AJAX sendet keine alten Preview-Hidden-Felder mehr mit und gibt KI-Fehler direkt im Browser zurueck, statt Admin-Mails fuer Preview-Fehler auszulösen.
+- KI-Protokoll auf Smartphone-Ansichten als Kartenlayout und mit mobil nutzbarem Detail-Popup verbessert.
+
 ## Version 1.2.1 – 2026-06-06
 
 **Improved:**

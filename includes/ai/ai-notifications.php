@@ -7,6 +7,12 @@ defined('ABSPATH') || exit;
  */
 function beitrag_ki_admin_benachrichtigen($fehlermeldung)
 {
+    global $beitrag_ki_admin_benachrichtigung_unterdruecken;
+
+    if (!empty($beitrag_ki_admin_benachrichtigung_unterdruecken)) {
+        return;
+    }
+
     $admin_email = get_option('admin_email');
     $benutzer = wp_get_current_user();
     $zeit = current_time('mysql');

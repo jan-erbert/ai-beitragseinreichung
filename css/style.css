@@ -79,6 +79,74 @@
     margin-top: 5px;
 }
 
+.beitrag-submit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.beitrag-preview {
+    background: #f6f7f7;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    margin-top: 24px;
+    padding: 22px;
+}
+
+.beitrag-preview__content {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    margin: 16px 0;
+    padding: 22px;
+}
+
+.beitrag-preview__meta {
+    color: #646970;
+    margin: 0 0 10px;
+}
+
+.beitrag-preview h3 {
+    font-size: 24px;
+    line-height: 1.25;
+    margin: 0 0 16px;
+}
+
+.beitrag-preview__image {
+    border-radius: 8px;
+    height: auto;
+    margin-bottom: 16px;
+    max-width: 320px;
+    width: 100%;
+}
+
+.beitrag-preview__excerpt {
+    border-left: 4px solid #2271b1;
+    color: #3c434a;
+    margin: 0 0 16px;
+    padding-left: 12px;
+}
+
+.beitrag-preview__gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.beitrag-preview__gallery-image {
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    height: 90px;
+    object-fit: cover;
+    width: 90px;
+}
+
+.beitrag-preview__revision {
+    border-top: 1px solid #dcdcde;
+    padding-top: 16px;
+}
+
 /* Für das Logo oben */
 #beitragseinreichung-logo {
     max-height: 120px;

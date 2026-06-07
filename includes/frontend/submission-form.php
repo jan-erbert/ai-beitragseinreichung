@@ -127,7 +127,8 @@ function beitragseinreichung_formular_anzeige()
                 <tr>
                     <th>Zusätzliche Bilder</th>
                     <td>
-                        <button id="select_gallery" class="button">Zusätzliche Bilder auswählen</button><br><br>
+                        <button id="select_gallery" class="button">Zusätzliche Bilder auswählen</button>
+                        <button id="clear_gallery" class="button" type="button" hidden>Auswahl entfernen</button><br><br>
                         <div id="gallery_preview"></div>
                         <input type="hidden" name="gallery_ids" id="gallery_ids" value="">
                     </td>
@@ -135,7 +136,43 @@ function beitragseinreichung_formular_anzeige()
 
             </table>
 
-            <?php submit_button('Beitrag einreichen'); ?>
+            <input type="hidden" name="beitrag_preview_ready" id="beitrag_preview_ready" value="0">
+            <textarea name="beitrag_preview_title" id="beitrag_preview_title" hidden></textarea>
+            <textarea name="beitrag_preview_content" id="beitrag_preview_content" hidden></textarea>
+            <textarea name="beitrag_preview_excerpt" id="beitrag_preview_excerpt" hidden></textarea>
+            <textarea name="beitrag_preview_original_title" id="beitrag_preview_original_title" hidden></textarea>
+            <textarea name="beitrag_preview_original_content" id="beitrag_preview_original_content" hidden></textarea>
+            <input type="hidden" name="beitrag_preview_ki_active" id="beitrag_preview_ki_active" value="0">
+            <input type="hidden" name="beitrag_preview_model" id="beitrag_preview_model" value="">
+            <textarea name="beitrag_preview_ai_hint" id="beitrag_preview_ai_hint" hidden></textarea>
+            <input type="hidden" name="beitrag_preview_style_group" id="beitrag_preview_style_group" value="">
+
+            <div id="beitrag-preview-panel" class="beitrag-preview" hidden>
+                <h2>Vorschau prüfen</h2>
+                <p class="description">Prüfe den Beitrag vor dem finalen Speichern. Bei Bedarf kannst du einen Änderungswunsch an die KI senden.</p>
+
+                <div class="beitrag-preview__content">
+                    <p class="beitrag-preview__meta" id="beitrag-preview-meta"></p>
+                    <h3 id="beitrag-preview-title"></h3>
+                    <div id="beitrag-preview-featured-image"></div>
+                    <div id="beitrag-preview-excerpt"></div>
+                    <div id="beitrag-preview-body"></div>
+                    <div id="beitrag-preview-gallery"></div>
+                </div>
+
+                <?php if ($ki_global_aktiv): ?>
+                    <div class="beitrag-preview__revision">
+                        <label for="beitrag_preview_change_request"><strong>Änderungswunsch an die KI</strong></label>
+                        <textarea name="beitrag_preview_change_request" id="beitrag_preview_change_request" rows="3" class="large-text" placeholder="z.B. Text etwas kürzer schreiben, freundlicher formulieren oder sachlicher machen."></textarea>
+                        <button type="button" id="beitrag-preview-revise-button" class="button">Mit Änderungswunsch erneut überarbeiten</button>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <p class="submit beitrag-submit-actions">
+                <button type="button" id="beitrag-preview-button" class="button button-secondary">Vorschau erstellen</button>
+                <button type="submit" id="beitrag-submit-final" class="button button-primary">Beitrag einreichen</button>
+            </p>
             <div id="submit-loader" style="display:none;">
                 <div class="submit-loader-inner">
                     <div class="submit-loader-bar"></div>

@@ -141,7 +141,7 @@ function beitragseinreichung_get_benachrichtigung_emails()
 /**
  * Sendet die Benachrichtigung zu einer neuen Beitragseinreichung.
  */
-function beitragseinreichung_sende_beitrag_benachrichtigung($beitrag_id, $titel, $inhalt, $ki_aktiv, $modell, $zusatz)
+function beitragseinreichung_sende_beitrag_benachrichtigung($beitrag_id, $titel, $inhalt, $ki_aktiv, $modell, $zusatz, $excerpt = '', $gallery_ids = '')
 {
     $emails = beitragseinreichung_get_benachrichtigung_emails();
 
@@ -151,21 +151,73 @@ function beitragseinreichung_sende_beitrag_benachrichtigung($beitrag_id, $titel,
 
     $ki_info = $ki_aktiv ? 'Ja' : 'Nein';
     $modell_info = $ki_aktiv ? beitrag_get_ai_model_display_name($modell) : '–';
+    $autor = get_user_by('ID', (int) get_post_field('post_author', $beitrag_id));
+    $autor_name = $autor ? $autor->display_name : '';
+    $kategorien = wp_get_post_categories($beitrag_id, ['fields' => 'names']);
+    $tags = wp_get_post_tags($beitrag_id, ['fields' => 'names']);
+    $edit_link = get_edit_post_link($beitrag_id);
+    $featured_image = get_the_post_thumbnail(
+        $beitrag_id,
+        'medium',
+        [
+            'style' => 'max-width: 100%; height: auto; border-radius: 8px;',
+        ]
+    );
+    $gallery_html = beitragseinreichung_render_mail_gallery($gallery_ids);
+    $content_html = function_exists('beitragseinreichung_render_submission_preview_content')
+        ? beitragseinreichung_render_submission_preview_content($inhalt)
+        : wpautop(wp_kses_post($inhalt));
 
-    $mail_html = '<html><body>';
-    $mail_html .= '<h2>Ein neuer Beitrag wurde eingereicht</h2>';
-    $mail_html .= '<p><strong>Titel:</strong> ' . esc_html($titel) . '</p>';
-    $mail_html .= '<p><strong>Inhalt:</strong><br>' . wpautop(wp_kses_post($inhalt)) . '</p>';
-    $mail_html .= '<hr>';
-    $mail_html .= '<p><strong>KI-Optimiert:</strong> ' . esc_html($ki_info) . '<br>';
-    $mail_html .= '<strong>Verwendetes Modell:</strong> ' . esc_html($modell_info) . '</p>';
+    $mail_html = '<html><body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,sans-serif;color:#1d2327;">';
+    $mail_html .= '<div style="max-width:720px;margin:0 auto;padding:24px;">';
+    $mail_html .= '<div style="background:#ffffff;border:1px solid #dcdcde;border-radius:10px;overflow:hidden;">';
+    $mail_html .= '<div style="background:#2271b1;color:#ffffff;padding:18px 22px;">';
+    $mail_html .= '<p style="margin:0 0 6px;font-size:13px;">Neue Beitragseinreichung</p>';
+    $mail_html .= '<h1 style="margin:0;font-size:26px;line-height:1.25;">' . esc_html($titel) . '</h1>';
+    $mail_html .= '</div>';
+    $mail_html .= '<div style="padding:22px;">';
+    $mail_html .= '<p style="margin:0 0 16px;color:#50575e;">Der Beitrag wurde gespeichert und wartet auf Prüfung.</p>';
 
-    if (!empty($zusatz)) {
-        $mail_html .= '<p><strong>KI-Hinweise:</strong><br>' . nl2br(esc_html($zusatz)) . '</p>';
+    if ($featured_image) {
+        $mail_html .= '<div style="margin:0 0 18px;">' . $featured_image . '</div>';
     }
 
-    $mail_html .= '<p><a href="' . esc_url(get_edit_post_link($beitrag_id)) . '">Beitrag jetzt prüfen &rarr;</a></p>';
-    $mail_html .= '</body></html>';
+    $mail_html .= '<table style="width:100%;border-collapse:collapse;margin:0 0 20px;font-size:14px;">';
+    $mail_html .= beitragseinreichung_render_mail_meta_row('Status', 'In Verarbeitung');
+    $mail_html .= beitragseinreichung_render_mail_meta_row('Autor', $autor_name);
+    $mail_html .= beitragseinreichung_render_mail_meta_row('Kategorie', implode(', ', $kategorien));
+    $mail_html .= beitragseinreichung_render_mail_meta_row('Schlagwörter', implode(', ', $tags));
+    $mail_html .= beitragseinreichung_render_mail_meta_row('KI-Optimiert', $ki_info);
+    if ($ki_aktiv) {
+        $mail_html .= beitragseinreichung_render_mail_meta_row('Modell', $modell_info);
+    }
+    $mail_html .= '</table>';
+
+    if (!empty($excerpt)) {
+        $mail_html .= '<div style="border-left:4px solid #2271b1;background:#f6f7f7;padding:12px 14px;margin:0 0 20px;">';
+        $mail_html .= '<strong>Textauszug</strong><br>' . esc_html($excerpt);
+        $mail_html .= '</div>';
+    }
+
+    $mail_html .= '<h2 style="font-size:18px;margin:0 0 10px;">Vorschau</h2>';
+    $mail_html .= '<div style="font-size:15px;line-height:1.6;margin:0 0 20px;">' . wp_kses_post($content_html) . '</div>';
+
+    if ($gallery_html !== '') {
+        $mail_html .= '<h2 style="font-size:18px;margin:0 0 10px;">Zusätzliche Bilder</h2>';
+        $mail_html .= $gallery_html;
+    }
+
+    if (!empty($zusatz)) {
+        $mail_html .= '<div style="background:#fff8e5;border:1px solid #f0c36d;border-radius:8px;padding:12px 14px;margin:20px 0 0;">';
+        $mail_html .= '<strong>KI-Hinweise</strong><br>' . nl2br(esc_html($zusatz));
+        $mail_html .= '</div>';
+    }
+
+    if ($edit_link) {
+        $mail_html .= '<p style="margin:24px 0 0;"><a href="' . esc_url($edit_link) . '" style="background:#2271b1;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;display:inline-block;">Beitrag jetzt prüfen</a></p>';
+    }
+
+    $mail_html .= '</div></div></div></body></html>';
 
     wp_mail(
         $emails,
@@ -173,4 +225,51 @@ function beitragseinreichung_sende_beitrag_benachrichtigung($beitrag_id, $titel,
         $mail_html,
         ['Content-Type: text/html; charset=UTF-8']
     );
+}
+
+/**
+ * Rendert eine Tabellenzeile fuer Mail-Metadaten.
+ */
+function beitragseinreichung_render_mail_meta_row($label, $value)
+{
+    $value = trim((string) $value);
+
+    if ($value === '') {
+        return '';
+    }
+
+    return '<tr>'
+        . '<th style="text-align:left;padding:7px 10px 7px 0;border-bottom:1px solid #f0f0f1;color:#50575e;width:150px;">' . esc_html($label) . '</th>'
+        . '<td style="padding:7px 0;border-bottom:1px solid #f0f0f1;">' . esc_html($value) . '</td>'
+        . '</tr>';
+}
+
+/**
+ * Rendert ausgewaehlte Zusatzbilder fuer die Benachrichtigungsmail.
+ */
+function beitragseinreichung_render_mail_gallery($gallery_ids)
+{
+    $ids = beitragseinreichung_parse_gallery_ids($gallery_ids);
+    $images = [];
+
+    foreach ($ids as $id) {
+        $image = wp_get_attachment_image(
+            $id,
+            'thumbnail',
+            false,
+            [
+                'style' => 'width:96px;height:96px;object-fit:cover;border-radius:6px;margin:0 8px 8px 0;',
+            ]
+        );
+
+        if ($image) {
+            $images[] = $image;
+        }
+    }
+
+    if (empty($images)) {
+        return '';
+    }
+
+    return '<div style="display:block;margin:0 0 20px;">' . implode('', $images) . '</div>';
 }

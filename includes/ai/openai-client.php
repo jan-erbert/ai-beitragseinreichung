@@ -92,13 +92,14 @@ function beitrag_ki_get_optimized_post_schema()
  */
 function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgruppe_label, $excerpt_auto = false)
 {
-    global $beitrag_ki_fehler;
+    global $beitrag_ki_fehler, $beitrag_ki_fehler_meldung;
 
     $modell = beitrag_normalize_ai_model($modell);
     $api_key = defined('OPENAI_API_KEY') ? OPENAI_API_KEY : get_option('beitragseinreichung_api_key');
 
     if (!$api_key || trim($titel . $inhalt) === '') {
         $beitrag_ki_fehler = true;
+        $beitrag_ki_fehler_meldung = !$api_key ? 'Kein API-Key hinterlegt.' : 'Titel oder Inhalt ist leer.';
         return [
             'title' => $titel,
             'content' => $inhalt,
@@ -108,6 +109,17 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
 
     $stil = beitrag_ki_ermittle_stil_prompt($stilgruppe_label);
     $prompt = beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz, $excerpt_auto);
+
+    if (strlen($prompt) > 50000) {
+        $beitrag_ki_fehler = true;
+        $beitrag_ki_fehler_meldung = 'Der Text ist fuer die KI-Vorschau zu lang. Bitte kuerze den Beitrag oder die Zusatzhinweise.';
+
+        return [
+            'title' => $titel,
+            'content' => $inhalt,
+            'excerpt' => '',
+        ];
+    }
 
     $request_body = array_merge([
         'model' => $modell,
@@ -136,6 +148,7 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
 
     if (is_wp_error($response)) {
         $beitrag_ki_fehler = true;
+        $beitrag_ki_fehler_meldung = $response->get_error_message();
         error_log('OpenAI Fehler: ' . $response->get_error_message());
         beitrag_ki_admin_benachrichtigen('Fehler: ' . $response->get_error_message());
 
@@ -151,6 +164,7 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
     if ($code < 200 || $code >= 300) {
         $beitrag_ki_fehler = true;
         $fehlermeldung = beitrag_openai_extract_error_message($body, 'OpenAI-Fehlercode: ' . $code);
+        $beitrag_ki_fehler_meldung = $fehlermeldung;
         beitrag_ki_admin_benachrichtigen($fehlermeldung);
 
         return [
@@ -165,6 +179,7 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
 
     if (!$data || empty($data['title']) || empty($data['content'])) {
         $beitrag_ki_fehler = true;
+        $beitrag_ki_fehler_meldung = 'Strukturierte KI-Antwort war unvollstaendig oder ungueltig.';
         beitrag_ki_admin_benachrichtigen('Strukturierte KI-Antwort war unvollstaendig oder ungueltig.');
 
         return [
