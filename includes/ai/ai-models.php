@@ -14,31 +14,31 @@ function beitrag_get_ai_model_config()
         'models' => [
             'gpt-5.4-nano' => [
                 'label' => 'GPT-5.4 nano',
-                'description' => 'Sehr schnell und guenstig fuer einfache Optimierungen.',
+                'description' => 'Sehr schnell und günstig für einfache Optimierungen.',
                 'enabled' => true,
                 'reasoning_effort' => 'none',
             ],
             'gpt-5.4-mini' => [
                 'label' => 'GPT-5.4 mini',
-                'description' => 'Empfohlenes Standardmodell fuer gute Qualitaet bei moderaten Kosten.',
+                'description' => 'Empfohlenes Standardmodell für gute Qualität bei moderaten Kosten.',
                 'enabled' => true,
                 'reasoning_effort' => 'none',
             ],
             'gpt-5.4' => [
                 'label' => 'GPT-5.4',
-                'description' => 'Hoehere Qualitaet fuer anspruchsvollere Textueberarbeitungen.',
+                'description' => 'Höhere Qualität für anspruchsvollere Textüberarbeitungen.',
                 'enabled' => true,
                 'reasoning_effort' => 'none',
             ],
             'gpt-5.5' => [
                 'label' => 'GPT-5.5',
-                'description' => 'Staerkstes Modell fuer sehr anspruchsvolle Beitraege; Kosten vor dauerhafter Nutzung beachten.',
+                'description' => 'Stärkstes Modell für sehr anspruchsvolle Beiträge; Kosten vor dauerhafter Nutzung beachten.',
                 'enabled' => true,
                 'reasoning_effort' => 'none',
             ],
             'gpt-5.5-pro' => [
                 'label' => 'GPT-5.5 pro',
-                'description' => 'Sehr leistungsstarke Pro-Variante fuer Ausnahmefaelle; hohe Kosten und laengere Laufzeit beachten.',
+                'description' => 'Sehr leistungsstarke Pro-Variante für Ausnahmefälle; hohe Kosten und längere Laufzeit beachten.',
                 'enabled' => false,
                 'reasoning_effort' => 'high',
             ],
@@ -50,7 +50,7 @@ function beitrag_get_ai_model_config()
             ],
             'gpt-5.2-pro' => [
                 'label' => 'GPT-5.2 pro',
-                'description' => 'Pro-Reserve fuer sehr anspruchsvolle Textpruefungen; nur bewusst freischalten.',
+                'description' => 'Pro-Reserve für sehr anspruchsvolle Textprüfungen; nur bewusst freischalten.',
                 'enabled' => false,
                 'reasoning_effort' => 'high',
             ],

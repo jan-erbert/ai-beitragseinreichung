@@ -44,9 +44,8 @@ function beitragseinreichung_einstellungen_anzeige()
             $empfaenger = isset($_POST['empfaenger_user_ids']) ? array_map('intval', (array) $_POST['empfaenger_user_ids']) : [];
             update_option('beitragseinreichung_benachrichtigungs_user_ids', $empfaenger);
 
-            if (isset($_POST['beitragseinreichung_ki_aktiv'])) {
-                update_option('beitragseinreichung_ki_aktiv', (int) $_POST['beitragseinreichung_ki_aktiv']);
-            }
+            $ki_aktiv = isset($_POST['beitragseinreichung_ki_aktiv']) ? (int) $_POST['beitragseinreichung_ki_aktiv'] : 0;
+            update_option('beitragseinreichung_ki_aktiv', $ki_aktiv);
 
             if (isset($_POST['beitragseinreichung_ki_modell'])) {
                 $ki_modell = beitrag_normalize_ai_model(sanitize_text_field(wp_unslash($_POST['beitragseinreichung_ki_modell'])));
@@ -55,6 +54,21 @@ function beitragseinreichung_einstellungen_anzeige()
 
             if (isset($_POST['beitragseinreichung_excerpt_aktiv'])) {
                 update_option('beitragseinreichung_excerpt_aktiv', (int) $_POST['beitragseinreichung_excerpt_aktiv']);
+            }
+
+            update_option('beitragseinreichung_tags_jahr_aktiv', isset($_POST['beitragseinreichung_tags_jahr_aktiv']) ? 1 : 0);
+            update_option('beitragseinreichung_ki_tags_aktiv', $ki_aktiv && isset($_POST['beitragseinreichung_ki_tags_aktiv']) ? 1 : 0);
+            update_option('beitragseinreichung_tags_context_aktiv', $ki_aktiv && isset($_POST['beitragseinreichung_tags_context_aktiv']) ? 1 : 0);
+
+            if ($ki_aktiv) {
+                $tag_limit = isset($_POST['beitragseinreichung_ki_tags_max']) ? (int) $_POST['beitragseinreichung_ki_tags_max'] : 5;
+                update_option('beitragseinreichung_ki_tags_max', max(1, min(12, $tag_limit)));
+                $tag_hints = isset($_POST['beitragseinreichung_tags_ki_hinweise']) ? sanitize_textarea_field(wp_unslash($_POST['beitragseinreichung_tags_ki_hinweise'])) : '';
+                update_option('beitragseinreichung_tags_ki_hinweise', $tag_hints);
+                $tag_standard_terms = isset($_POST['beitragseinreichung_tag_standard_terms'])
+                    ? beitragseinreichung_parse_tags(sanitize_text_field(wp_unslash($_POST['beitragseinreichung_tag_standard_terms'])))
+                    : [];
+                update_option('beitragseinreichung_tag_standard_terms', $tag_standard_terms);
             }
 
             if (!defined('OPENAI_API_KEY') && isset($_POST['beitragseinreichung_api_key'])) {
@@ -77,6 +91,9 @@ function beitragseinreichung_einstellungen_anzeige()
 
     $kategorien = get_categories(['hide_empty' => false]);
     $nutzer = get_users(['fields' => ['ID', 'display_name', 'user_email']]);
+    $frequent_tags = beitragseinreichung_get_frequent_tags_with_counts(50);
+    $standard_terms = beitragseinreichung_get_tag_standard_terms();
+    $ki_einstellung_aktiv = (int) get_option('beitragseinreichung_ki_aktiv') === 1;
 ?>
     <div class="wrap">
         <h1>Beitragseinreichung – Einstellungen</h1>
@@ -217,6 +234,81 @@ function beitragseinreichung_einstellungen_anzeige()
                         <p class="description">Wenn aktiviert, kannst du im Formular festlegen, ob Titel und Inhalt per GPT-API verbessert werden.</p>
                     </td>
                 </tr>
+                <?php if ($ist_admin): ?>
+                    <tr>
+                        <th scope="row">Schlagwörter</th>
+                        <td>
+                            <fieldset style="max-width: 780px;">
+                                <label>
+                                    <input type="checkbox" name="beitragseinreichung_tags_jahr_aktiv" value="1" <?php checked(get_option('beitragseinreichung_tags_jahr_aktiv'), 1); ?>>
+                                    Aktuelles Jahr automatisch als Schlagwort vorschlagen
+                                </label>
+                                <p class="description">Das Jahr wird im Formular als Kachel vorgeschlagen und kann fuer den einzelnen Beitrag entfernt werden.</p>
+
+                                <div class="notice notice-warning inline" id="beitrag-ki-tags-disabled-notice" style="margin: 14px 0 12px; <?php echo $ki_einstellung_aktiv ? 'display:none;' : ''; ?>">
+                                    <p><strong>KI ist deaktiviert.</strong> KI-Schlagwörter, Kontext und Hinweise sind vorbereitet sichtbar, aber erst nach Aktivierung der KI nutzbar.</p>
+                                </div>
+
+                                <fieldset id="beitrag-ki-tags-options" <?php disabled(!$ki_einstellung_aktiv); ?> style="border:0;margin:0;padding:0;">
+                                    <label>
+                                        <input type="checkbox" name="beitragseinreichung_ki_tags_aktiv" value="1" <?php checked(get_option('beitragseinreichung_ki_tags_aktiv'), 1); ?>>
+                                        KI-Schlagwörter vorschlagen
+                                    </label>
+                                    <p class="description">Bei aktivierter KI kann die Vorschau passende Schlagwörter ergänzen.</p>
+
+                                    <label for="beitragseinreichung_ki_tags_max">Maximale KI-Schlagwörter</label><br>
+                                    <input type="number" min="1" max="12" name="beitragseinreichung_ki_tags_max" id="beitragseinreichung_ki_tags_max" value="<?php echo esc_attr(beitragseinreichung_get_ai_tag_limit()); ?>" style="width: 90px;">
+
+                                    <p style="margin-top: 14px;">
+                                        <label>
+                                            <input type="checkbox" name="beitragseinreichung_tags_context_aktiv" value="1" <?php checked(get_option('beitragseinreichung_tags_context_aktiv'), 1); ?>>
+                                            Häufig verwendete Schlagwörter als Orientierung für die KI verwenden
+                                        </label>
+                                    </p>
+
+                                    <div class="beitrag-settings-tag-section beitrag-settings-tag-pool">
+                                        <div class="beitrag-settings-tag-section__header">
+                                            <p class="beitrag-settings-tag-section__title"><strong>Bevorzugte Schlagwörter für die KI</strong></p>
+                                            <button type="button" class="button button-small" id="beitrag-settings-frequent-tags-open">Aus häufig verwendeten Schlagwörtern hinzufügen</button>
+                                        </div>
+                                        <div class="beitrag-settings-tag-editor" data-initial-tags="<?php echo esc_attr(wp_json_encode($standard_terms)); ?>">
+                                            <div id="beitrag-settings-tag-pool-chips" class="beitrag-settings-tag-chips"></div>
+                                            <input type="text" id="beitrag-settings-tag-pool-input" class="regular-text" placeholder="Schlagwort hinzufügen und Enter drücken">
+                                        </div>
+                                        <input type="hidden" name="beitragseinreichung_tag_standard_terms" id="beitragseinreichung_tag_standard_terms" value="<?php echo esc_attr(implode(', ', $standard_terms)); ?>">
+                                        <p class="description">Diese Kacheln sind bevorzugte Schreibweisen für die KI. Löschen entfernt sie nur aus diesem KI-Pool, nicht aus WordPress.</p>
+                                    </div>
+
+                                        <p>
+                                            <label for="beitragseinreichung_tags_ki_hinweise"><strong>Hinweise für KI-Schlagwörter</strong></label><br>
+                                            <textarea name="beitragseinreichung_tags_ki_hinweise" id="beitragseinreichung_tags_ki_hinweise" rows="4" class="large-text" placeholder="Wenn möglich den Ort aufnehmen. Keine zu allgemeinen Tags verwenden."><?php echo esc_textarea(get_option('beitragseinreichung_tags_ki_hinweise', '')); ?></textarea>
+                                        </p>
+
+                                        <div class="beitrag-settings-tag-modal" id="beitrag-settings-frequent-tags-modal" role="dialog" aria-modal="true" aria-labelledby="beitrag-settings-frequent-tags-title" hidden>
+                                            <div class="beitrag-settings-tag-modal__panel">
+                                                <button type="button" class="beitrag-settings-tag-modal__close" aria-label="Popup schließen">×</button>
+                                                <h2 id="beitrag-settings-frequent-tags-title">Häufig verwendete Schlagwörter</h2>
+                                                <p class="description">Mit + übernimmst du ein häufig verwendetes WordPress-Schlagwort in den KI-Pool. Bereits übernommene Tags sind grün markiert.</p>
+                                                <div class="beitrag-settings-tag-cloud">
+                                                    <?php if (empty($frequent_tags)): ?>
+                                                        <span class="description">Noch keine Schlagwörter vorhanden.</span>
+                                                    <?php else: ?>
+                                                        <?php foreach ($frequent_tags as $tag): ?>
+                                                            <button type="button" class="beitrag-settings-frequent-tag" data-tag="<?php echo esc_attr($tag['name']); ?>" title="In den KI-Pool übernehmen">
+                                                                <span><?php echo esc_html($tag['name']); ?></span>
+                                                                <span class="beitrag-settings-frequent-tag__count"><?php echo esc_html((string) $tag['count']); ?></span>
+                                                                <span class="beitrag-settings-frequent-tag__add" aria-hidden="true">+</span>
+                                                            </button>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                </fieldset>
+                            </fieldset>
+                        </td>
+                    </tr>
+                <?php endif; ?>
                 <tr>
                     <th scope="row">Stilgruppen verwalten</th>
                     <td>
@@ -225,15 +317,33 @@ function beitragseinreichung_einstellungen_anzeige()
                         </select>
                         <button type="button" class="button" id="neue-stilgruppe">+ Neue Stilgruppe</button>
 
-                        <div id="stilgruppe-editor" style="margin-top: 20px; display: none;">
-                            <label for="stilgruppe-label">Bezeichnung:</label><br>
-                            <input type="text" id="stilgruppe-label" style="width: 100%;"><br><br>
-                            <label for="stilgruppe-stil">Stilbeschreibung:</label><br>
-                            <textarea id="stilgruppe-stil" rows="16" style="width: 100%;"></textarea><br><br>
-                            <label for="stilgruppe-ziel">Ziel (optional):</label><br>
-                            <input type="text" id="stilgruppe-ziel" style="width: 100%;"><br><br>
-                            <button type="button" class="button button-primary" id="stilgruppe-speichern">Speichern</button>
-                            <button type="button" class="button button-secondary" id="stilgruppe-loeschen">Löschen</button>
+                        <div class="beitrag-settings-style-modal" id="stilgruppe-editor" role="dialog" aria-modal="true" aria-labelledby="stilgruppe-editor-title" hidden>
+                            <div class="beitrag-settings-style-modal__panel">
+                                <button type="button" class="beitrag-settings-style-modal__close" aria-label="Popup schließen">×</button>
+                                <h2 id="stilgruppe-editor-title">Stilgruppe bearbeiten</h2>
+                                <p class="description">Speichern übernimmt die Stilgruppe und speichert direkt die kompletten Einstellungen.</p>
+
+                                <p>
+                                    <label for="stilgruppe-label"><strong>Bezeichnung</strong></label><br>
+                                    <input type="text" id="stilgruppe-label" class="regular-text">
+                                </p>
+
+                                <p>
+                                    <label for="stilgruppe-stil"><strong>Stilbeschreibung</strong></label><br>
+                                    <textarea id="stilgruppe-stil" rows="12" class="large-text"></textarea>
+                                </p>
+
+                                <p>
+                                    <label for="stilgruppe-ziel"><strong>Ziel (optional)</strong></label><br>
+                                    <input type="text" id="stilgruppe-ziel" class="regular-text">
+                                </p>
+
+                                <div class="beitrag-settings-style-modal__actions">
+                                    <button type="button" class="button button-link-delete" id="stilgruppe-loeschen">Löschen</button>
+                                    <button type="button" class="button" id="stilgruppe-abbrechen">Abbrechen</button>
+                                    <button type="button" class="button button-primary" id="stilgruppe-speichern">Speichern</button>
+                                </div>
+                            </div>
                         </div>
 
                         <input type="hidden" name="stilgruppe_label[]">
@@ -250,6 +360,8 @@ function beitragseinreichung_einstellungen_anzeige()
                         const inputStil = document.getElementById('stilgruppe-stil');
                         const speichernBtn = document.getElementById('stilgruppe-speichern');
                         const loeschenBtn = document.getElementById('stilgruppe-loeschen');
+                        const abbrechenBtn = document.getElementById('stilgruppe-abbrechen');
+                        const schliessenBtn = editor.querySelector('.beitrag-settings-style-modal__close');
                         const neueBtn = document.getElementById('neue-stilgruppe');
 
                         function updateDropdown() {
@@ -262,8 +374,23 @@ function beitragseinreichung_einstellungen_anzeige()
                             });
                         }
 
+                        function closeEditor() {
+                            editor.hidden = true;
+                            auswahl.value = '';
+                        }
+
+                        function submitSettingsForm() {
+                            const form = auswahl.closest('form');
+                            if (form.requestSubmit) {
+                                form.requestSubmit();
+                                return;
+                            }
+
+                            form.submit();
+                        }
+
                         function showEditor(index = null) {
-                            editor.style.display = 'block';
+                            editor.hidden = false;
                             if (index === null) {
                                 auswahl.value = '';
                                 inputLabel.value = '';
@@ -277,14 +404,6 @@ function beitragseinreichung_einstellungen_anzeige()
                                 document.getElementById('stilgruppe-ziel').value = gruppe.ziel || '';
                                 editor.dataset.index = index;
                             }
-
-                            // Hinweistext einfügen
-                            editor.querySelectorAll('p.stilgruppe-hinweis').forEach(p => p.remove());
-                            document.getElementById('stilgruppe-ziel').insertAdjacentHTML('afterend', `
-                            <p class="stilgruppe-hinweis" style="color: #666; font-size: 0.85em; margin-top: 8px;">
-                                💡 Denk nach dem lokalen Speichern der Stilgruppe daran, auch unten auf <strong>„Einstellungen speichern“</strong> zu klicken!
-                            </p>
-                        `);
                         }
 
 
@@ -293,17 +412,88 @@ function beitragseinreichung_einstellungen_anzeige()
                             if (index !== '') {
                                 showEditor(parseInt(index));
                             } else {
-                                editor.style.display = 'none';
+                                closeEditor();
                             }
                         });
 
                         neueBtn.addEventListener('click', () => showEditor(null));
 
-                        speichernBtn.addEventListener('click', () => {
+                        function showSettingsDialog({ title, message, confirmText = 'Weiter', cancelText = 'Abbrechen', showCancel = false }) {
+                            return new Promise(resolve => {
+                                const modal = document.createElement('div');
+                                modal.className = 'beitrag-dialog';
+                                modal.setAttribute('role', 'dialog');
+                                modal.setAttribute('aria-modal', 'true');
+
+                                const panel = document.createElement('div');
+                                panel.className = 'beitrag-dialog__panel';
+                                modal.appendChild(panel);
+
+                                const close = document.createElement('button');
+                                close.type = 'button';
+                                close.className = 'beitrag-dialog__close';
+                                close.textContent = '×';
+                                close.setAttribute('aria-label', 'Hinweis schließen');
+                                panel.appendChild(close);
+
+                                const heading = document.createElement('h2');
+                                heading.textContent = title;
+                                panel.appendChild(heading);
+
+                                const text = document.createElement('p');
+                                text.className = 'beitrag-dialog__message';
+                                text.textContent = message;
+                                panel.appendChild(text);
+
+                                const actions = document.createElement('div');
+                                actions.className = 'beitrag-dialog__actions';
+                                panel.appendChild(actions);
+
+                                if (showCancel) {
+                                    const cancel = document.createElement('button');
+                                    cancel.type = 'button';
+                                    cancel.className = 'button button-secondary beitrag-dialog__cancel';
+                                    cancel.textContent = cancelText;
+                                    actions.appendChild(cancel);
+                                    cancel.addEventListener('click', () => closeDialog(false));
+                                }
+
+                                const confirm = document.createElement('button');
+                                confirm.type = 'button';
+                                confirm.className = 'button button-primary beitrag-dialog__confirm';
+                                confirm.textContent = confirmText;
+                                actions.appendChild(confirm);
+
+                                function closeDialog(result) {
+                                    modal.remove();
+                                    resolve(result);
+                                }
+
+                                close.addEventListener('click', () => closeDialog(false));
+                                confirm.addEventListener('click', () => closeDialog(true));
+                                modal.addEventListener('click', event => {
+                                    if (event.target === modal) {
+                                        closeDialog(false);
+                                    }
+                                });
+
+                                document.body.appendChild(modal);
+                                confirm.focus();
+                            });
+                        }
+
+                        speichernBtn.addEventListener('click', async () => {
                             const label = inputLabel.value.trim();
                             const stil = inputStil.value.trim();
                             const ziel = document.getElementById('stilgruppe-ziel').value.trim();
-                            if (!label || !stil) return alert('Bitte fülle beide Felder aus.');
+                            if (!label || !stil) {
+                                await showSettingsDialog({
+                                    title: 'Stilgruppe unvollständig',
+                                    message: 'Bitte fülle Name und Stilvorgabe aus.',
+                                    confirmText: 'Verstanden'
+                                });
+                                return;
+                            }
 
                             const index = editor.dataset.index;
                             if (index === '') {
@@ -320,21 +510,41 @@ function beitragseinreichung_einstellungen_anzeige()
                                 };
                             }
                             updateDropdown();
-                            auswahl.value = '';
-                            editor.style.display = 'none';
                             syncHiddenInputs();
+                            closeEditor();
+                            submitSettingsForm();
                         });
 
-                        loeschenBtn.addEventListener('click', () => {
+                        loeschenBtn.addEventListener('click', async () => {
                             const index = parseInt(editor.dataset.index);
                             if (!Number.isInteger(index)) return;
-                            if (!confirm('Wirklich löschen?')) return;
+                            const confirmed = await showSettingsDialog({
+                                title: 'Stilgruppe löschen?',
+                                message: 'Diese Stilgruppe wird aus den Einstellungen entfernt und anschließend direkt gespeichert.',
+                                confirmText: 'Löschen',
+                                cancelText: 'Abbrechen',
+                                showCancel: true
+                            });
+                            if (!confirmed) return;
 
                             stilgruppen.splice(index, 1);
                             updateDropdown();
-                            auswahl.value = '';
-                            editor.style.display = 'none';
                             syncHiddenInputs();
+                            closeEditor();
+                            submitSettingsForm();
+                        });
+
+                        abbrechenBtn.addEventListener('click', closeEditor);
+                        schliessenBtn.addEventListener('click', closeEditor);
+                        editor.addEventListener('click', event => {
+                            if (event.target === editor) {
+                                closeEditor();
+                            }
+                        });
+                        document.addEventListener('keydown', event => {
+                            if (event.key === 'Escape' && !editor.hidden) {
+                                closeEditor();
+                            }
                         });
 
                         function syncHiddenInputs() {
@@ -449,18 +659,198 @@ function beitragseinreichung_einstellungen_anzeige()
                 Weitere Hilfe & Dokumentation findest du im Plugin-Wiki →
             </a>
         </p>
+        <?php if (current_user_can('beitragseinreichung_settings')): ?>
+            <p style="margin-top: 18px;">
+                <button type="button" class="button button-small" id="beitrag-update-popup-show">Versionshinweise noch einmal anzeigen</button>
+            </p>
+        <?php endif; ?>
+        <p class="beitrag-plugin-version">
+            AI Beitragseinreichung <?php echo esc_html('v' . BEITRAGSEINREICHUNG_VERSION); ?>
+        </p>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const modellSelect = document.getElementById('beitragseinreichung_ki_modell');
                 const hinweisFeld = document.getElementById('ki-hinweis-modell');
+                const kiSelect = document.getElementById('beitragseinreichung_ki_aktiv');
+                const kiTagsOptions = document.getElementById('beitrag-ki-tags-options');
+                const kiTagsNotice = document.getElementById('beitrag-ki-tags-disabled-notice');
 
                 function updateHinweis() {
                     const option = modellSelect.options[modellSelect.selectedIndex];
                     hinweisFeld.textContent = option ? option.dataset.description : 'Unbekanntes Modell';
                 }
 
+                function updateKiTagOptions() {
+                    if (!kiSelect || !kiTagsOptions) {
+                        return;
+                    }
+
+                    const isKiActive = kiSelect.value === '1' && !kiSelect.disabled;
+                    kiTagsOptions.disabled = !isKiActive;
+                    if (kiTagsNotice) {
+                        kiTagsNotice.style.display = isKiActive ? 'none' : 'block';
+                    }
+                }
+
+                function normalizeSettingsTag(tag) {
+                    return String(tag || '').replace(/\s+/g, ' ').replace(/^[,;\s]+|[,;\s]+$/g, '');
+                }
+
+                function settingsTagKey(tag) {
+                    return normalizeSettingsTag(tag).toLocaleLowerCase();
+                }
+
+                function initSettingsTagPool() {
+                    const editor = document.querySelector('.beitrag-settings-tag-editor');
+                    const chips = document.getElementById('beitrag-settings-tag-pool-chips');
+                    const input = document.getElementById('beitrag-settings-tag-pool-input');
+                    const hidden = document.getElementById('beitragseinreichung_tag_standard_terms');
+                    const frequentButtons = Array.from(document.querySelectorAll('.beitrag-settings-frequent-tag'));
+                    const frequentModal = document.getElementById('beitrag-settings-frequent-tags-modal');
+                    const frequentModalOpen = document.getElementById('beitrag-settings-frequent-tags-open');
+                    const frequentModalClose = frequentModal ? frequentModal.querySelector('.beitrag-settings-tag-modal__close') : null;
+
+                    if (!editor || !chips || !input || !hidden) {
+                        return;
+                    }
+
+                    let tagPool = [];
+                    try {
+                        const initialTags = editor.dataset.initialTags ? JSON.parse(editor.dataset.initialTags) : [];
+                        tagPool = Array.isArray(initialTags) ? initialTags : [];
+                    } catch (error) {
+                        tagPool = [];
+                    }
+
+                    function syncTagPool() {
+                        hidden.value = tagPool.join(', ');
+                    }
+
+                    function updateFrequentTagStates() {
+                        const tagKeys = tagPool.map(settingsTagKey);
+                        frequentButtons.forEach(button => {
+                            const isSelected = tagKeys.includes(settingsTagKey(button.dataset.tag || ''));
+                            button.classList.toggle('beitrag-settings-frequent-tag--selected', isSelected);
+                            button.setAttribute(
+                                'title',
+                                isSelected ? 'Bereits im KI-Pool' : 'In den KI-Pool übernehmen'
+                            );
+                        });
+                    }
+
+                    function renderTagPool() {
+                        chips.innerHTML = '';
+
+                        if (!tagPool.length) {
+                            const placeholder = document.createElement('span');
+                            placeholder.className = 'beitrag-settings-tag-chip beitrag-settings-tag-chip--placeholder';
+                            placeholder.textContent = 'Noch keine bevorzugten Schlagwörter gesetzt';
+                            chips.appendChild(placeholder);
+                        }
+
+                        tagPool.forEach(tag => {
+                            const chip = document.createElement('span');
+                            chip.className = 'beitrag-settings-tag-chip';
+                            chip.textContent = tag;
+
+                            const remove = document.createElement('button');
+                            remove.type = 'button';
+                            remove.className = 'beitrag-settings-tag-chip__remove';
+                            remove.textContent = '×';
+                            remove.setAttribute('aria-label', 'Schlagwort aus KI-Pool entfernen');
+                            remove.addEventListener('click', function() {
+                                removeTagFromPool(tag);
+                            });
+
+                            chip.appendChild(remove);
+                            chips.appendChild(chip);
+                        });
+
+                        syncTagPool();
+                        updateFrequentTagStates();
+                    }
+
+                    function addTagToPool(tag) {
+                        tag = normalizeSettingsTag(tag);
+                        if (!tag) {
+                            return false;
+                        }
+
+                        const key = settingsTagKey(tag);
+                        const exists = tagPool.some(existing => settingsTagKey(existing) === key);
+                        if (exists) {
+                            return false;
+                        }
+
+                        tagPool.push(tag);
+                        renderTagPool();
+                        return true;
+                    }
+
+                    function removeTagFromPool(tag) {
+                        const key = settingsTagKey(tag);
+                        tagPool = tagPool.filter(existing => settingsTagKey(existing) !== key);
+                        renderTagPool();
+                    }
+
+                    function addTagsFromInput(value) {
+                        String(value || '').split(',').forEach(addTagToPool);
+                    }
+
+                    input.addEventListener('keydown', function(event) {
+                        if (event.key === 'Enter' || event.key === ',') {
+                            event.preventDefault();
+                            addTagsFromInput(input.value);
+                            input.value = '';
+                        }
+                    });
+
+                    input.addEventListener('blur', function() {
+                        addTagsFromInput(input.value);
+                        input.value = '';
+                    });
+
+                    frequentButtons.forEach(button => {
+                        button.addEventListener('click', function() {
+                            addTagToPool(button.dataset.tag || '');
+                        });
+                    });
+
+                    if (frequentModal && frequentModalOpen) {
+                        frequentModalOpen.addEventListener('click', function() {
+                            frequentModal.hidden = false;
+                        });
+
+                        if (frequentModalClose) {
+                            frequentModalClose.addEventListener('click', function() {
+                                frequentModal.hidden = true;
+                            });
+                        }
+
+                        frequentModal.addEventListener('click', function(event) {
+                            if (event.target === frequentModal) {
+                                frequentModal.hidden = true;
+                            }
+                        });
+
+                        document.addEventListener('keydown', function(event) {
+                            if (event.key === 'Escape' && !frequentModal.hidden) {
+                                frequentModal.hidden = true;
+                            }
+                        });
+                    }
+
+                    tagPool = tagPool.map(normalizeSettingsTag).filter(Boolean);
+                    renderTagPool();
+                }
+
                 modellSelect.addEventListener('change', updateHinweis);
                 updateHinweis(); // Initial setzen
+                if (kiSelect) {
+                    kiSelect.addEventListener('change', updateKiTagOptions);
+                    updateKiTagOptions();
+                }
+                initSettingsTagPool();
             });
         </script>
     </div>

@@ -12,6 +12,7 @@ function beitragseinreichung_get_submission_input(array $source)
 {
     $ki_global = get_option('beitragseinreichung_ki_aktiv');
     $ki_aktiv = ($ki_global && !empty($source['beitrag_ki_individuell'])) ? true : false;
+    $ki_tags_active = $ki_aktiv && get_option('beitragseinreichung_ki_tags_aktiv') && !empty($source['beitrag_ki_tags_auto']);
 
     return [
         'title' => sanitize_text_field(wp_unslash($source['beitrag_titel'] ?? '')),
@@ -23,6 +24,7 @@ function beitragseinreichung_get_submission_input(array $source)
         'gallery_ids' => sanitize_text_field(wp_unslash($source['gallery_ids'] ?? '')),
         'ki_active' => $ki_aktiv,
         'excerpt_auto' => !empty($source['beitrag_excerpt_auto']),
+        'ki_tags_active' => $ki_tags_active,
         'style_group' => !empty($source['beitrag_ki_stilgruppe']) ? sanitize_text_field(wp_unslash($source['beitrag_ki_stilgruppe'])) : '',
         'ai_hint' => sanitize_textarea_field(wp_unslash($source['beitrag_ki_hinweis'] ?? '')),
         'change_request' => sanitize_textarea_field(wp_unslash($source['beitrag_preview_change_request'] ?? '')),
@@ -51,7 +53,7 @@ function beitragseinreichung_build_submission_preview(array $input)
         $change_request = trim((string) $input['change_request']);
 
         if ($change_request !== '') {
-            $ai_hint = trim($ai_hint . "\n\nAenderungswunsch aus der Vorschau: " . $change_request);
+            $ai_hint = trim($ai_hint . "\n\nÄnderungswunsch aus der Vorschau: " . $change_request);
         }
 
         $ki_result = beitrag_ki_optimiere_beitrag(
@@ -60,12 +62,15 @@ function beitragseinreichung_build_submission_preview(array $input)
             $model,
             $ai_hint,
             $style_group,
-            !empty($input['excerpt_auto'])
+            !empty($input['excerpt_auto']),
+            $input['tags'],
+            !empty($input['ki_tags_active'])
         );
 
         $title = beitrag_bereinige_titel_text($ki_result['title'], $original_title);
         $content = $ki_result['content'];
         $excerpt = $ki_result['excerpt'];
+        $input['tags'] = beitragseinreichung_merge_tags($input['tags'], $ki_result['tags'] ?? []);
     }
 
     $title = beitrag_bereinige_titel_text($title, $original_title);
@@ -76,7 +81,7 @@ function beitragseinreichung_build_submission_preview(array $input)
         'excerpt' => $excerpt,
         'original_title' => $original_title,
         'original_content' => $original_content,
-        'tags' => (string) $input['tags'],
+        'tags' => implode(', ', beitragseinreichung_merge_tags(beitragseinreichung_get_default_tags(), $input['tags'])),
         'category_id' => (int) $input['category_id'],
         'featured_image_id' => (int) $input['featured_image_id'],
         'gallery_ids' => (string) $input['gallery_ids'],
@@ -151,6 +156,50 @@ function beitragseinreichung_render_submission_preview_content($content)
 }
 
 /**
+ * Speichert eine Vorschau kurzzeitig serverseitig und liefert ihr Token.
+ *
+ * @param array<string, mixed> $preview Vorschau-Daten.
+ */
+function beitragseinreichung_store_submission_preview(array $preview)
+{
+    $token = wp_generate_uuid4();
+    $key = 'beitragseinreichung_preview_' . get_current_user_id() . '_' . $token;
+
+    set_transient($key, $preview, 30 * MINUTE_IN_SECONDS);
+
+    return $token;
+}
+
+/**
+ * Laedt eine serverseitig gespeicherte Vorschau fuer den aktuellen Nutzer.
+ */
+function beitragseinreichung_get_stored_submission_preview($token)
+{
+    $token = sanitize_text_field((string) $token);
+    if ($token === '') {
+        return null;
+    }
+
+    $key = 'beitragseinreichung_preview_' . get_current_user_id() . '_' . $token;
+    $preview = get_transient($key);
+
+    return is_array($preview) ? $preview : null;
+}
+
+/**
+ * Entfernt eine serverseitig gespeicherte Vorschau fuer den aktuellen Nutzer.
+ */
+function beitragseinreichung_delete_stored_submission_preview($token)
+{
+    $token = sanitize_text_field((string) $token);
+    if ($token === '') {
+        return;
+    }
+
+    delete_transient('beitragseinreichung_preview_' . get_current_user_id() . '_' . $token);
+}
+
+/**
  * Erstellt eine serverseitige Vorschau per AJAX.
  */
 add_action('wp_ajax_beitragseinreichung_preview_beitrag', function () {
@@ -164,8 +213,8 @@ add_action('wp_ajax_beitragseinreichung_preview_beitrag', function () {
 
     $input = beitragseinreichung_get_submission_input($_POST);
 
-    if ($input['title'] === '' || $input['content'] === '' || $input['tags'] === '') {
-        wp_send_json_error(['message' => 'Bitte fuelle Titel, Inhalt und Schlagwoerter aus.']);
+    if ($input['title'] === '' || $input['content'] === '' || (empty($input['ki_tags_active']) && $input['tags'] === '')) {
+        wp_send_json_error(['message' => 'Bitte fülle Titel, Inhalt und Schlagwörter aus.']);
     }
 
     if (!empty($input['ki_active']) && $input['style_group'] === '') {
@@ -186,9 +235,11 @@ add_action('wp_ajax_beitragseinreichung_preview_beitrag', function () {
 
     $media = beitragseinreichung_render_submission_preview_media($preview);
     $category = $preview['category_id'] > 0 ? get_category((int) $preview['category_id']) : null;
+    $preview_token = beitragseinreichung_store_submission_preview($preview);
 
     wp_send_json_success([
         'preview' => [
+            'token' => $preview_token,
             'title' => $preview['title'],
             'content' => $preview['content'],
             'content_html' => beitragseinreichung_render_submission_preview_content($preview['content']),

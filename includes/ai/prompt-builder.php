@@ -24,32 +24,50 @@ function beitrag_ki_ermittle_stil_prompt($stilgruppe_label = '')
 /**
  * Baut den Prompt fuer die strukturierte Beitragsoptimierung.
  */
-function beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz = '', $excerpt_auto = false)
+function beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz = '', $excerpt_auto = false, $manual_tags = '', $generate_tags = true)
 {
     $excerpt_regel = $excerpt_auto
-        ? '- excerpt: 1-2 kurze Saetze als reine Textvorschau ohne Markdown.'
+        ? '- excerpt: 1-2 kurze Sätze als reine Textvorschau ohne Markdown.'
         : '- excerpt: leerer String.';
+    $tag_limit = beitragseinreichung_get_ai_tag_limit();
+    $ki_tags_aktiv = $generate_tags && get_option('beitragseinreichung_ki_tags_aktiv') ? true : false;
+    $tag_regel = $ki_tags_aktiv
+        ? '- tags: maximal ' . $tag_limit . ' passende Schlagwörter. Keine Hashtags, keine Emojis, keine erfundenen Orte oder Fakten.'
+        : '- tags: leeres Array.';
+    $manual_tags_text = implode(', ', beitragseinreichung_parse_tags($manual_tags));
+    $standard_terms = beitragseinreichung_get_tag_standard_terms();
+    if (get_option('beitragseinreichung_tags_context_aktiv')) {
+        $standard_terms = beitragseinreichung_merge_tags($standard_terms, beitragseinreichung_get_frequent_tags(50));
+    }
+    $standard_terms_text = implode(', ', array_slice($standard_terms, 0, 80));
+    $tag_hinweise = trim((string) get_option('beitragseinreichung_tags_ki_hinweise', ''));
 
     $prompt = <<<EOT
     Optimiere den folgenden WordPress-Beitrag redaktionell.
 
     Nutze den Originaltitel als Orientierung. Der neue Titel soll nah an der Nutzereingabe bleiben, aber mit Kontext des fertigen Beitragstextes und der Stilvorgaben verbessert werden.
 
-    Gib ausschliesslich valides JSON in exakt dieser Struktur zurueck:
+    Gib ausschließlich valides JSON in exakt dieser Struktur zurück:
     {
       "title": "...",
       "content": "...",
-      "excerpt": "..."
+      "excerpt": "...",
+      "tags": []
     }
 
     Regeln:
     - title: maximal 90 Zeichen, eine Zeile, kein Markdown, keine HTML-Tags, keine Sternchen.
     - title: Emojis sind erlaubt, wenn sie zur Stilgruppe passen, aber maximal 1-2.
-    - title: keine Fakten erfinden und keine Details ueberbetonen.
+    - title: keine Fakten erfinden und keine Details überbetonen.
     - content: optimierter Beitragstext, keine Gutenberg-Kommentare, keine erfundenen Inhalte.
     - content: einfache Markdown-Formatierung ist erlaubt, wenn sie sinnvoll ist.
+    - Sprache: Verwende korrektes Deutsch mit Umlauten und ß. Schreibe z. B. „ä“, „ö“, „ü“ und „ß“ statt „ae“, „oe“, „ue“ oder „ss“, sofern die normale deutsche Schreibweise das vorsieht.
     $excerpt_regel
-    - Keine Erklaerungen ausserhalb des JSON.
+    $tag_regel
+    - tags: manuelle Schlagwörter beibehalten, wenn sie passen.
+    - tags: vorhandene Standard-Schlagwörter bevorzugen, wenn sie inhaltlich passen, aber nicht erzwingen.
+    - tags: keine Jahreszahl vorschlagen, wenn sie bereits manuell vorhanden ist.
+    - Keine Erklärungen außerhalb des JSON.
 
     Stilvorgaben:
     $stil
@@ -60,6 +78,18 @@ function beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz = '', $e
     Beitragstext:
     $inhalt
     EOT;
+
+    if ($manual_tags_text !== '') {
+        $prompt .= "\n\nBereits gesetzte Schlagwörter:\n" . $manual_tags_text;
+    }
+
+    if ($standard_terms_text !== '') {
+        $prompt .= "\n\nBevorzugte vorhandene Schlagwörter bei passendem Inhalt:\n" . $standard_terms_text;
+    }
+
+    if ($tag_hinweise !== '') {
+        $prompt .= "\n\nHinweise für Schlagwörter:\n" . $tag_hinweise;
+    }
 
     if (!empty($zusatz)) {
         $prompt .= "\n\nZusatzhinweise:\n" . $zusatz;

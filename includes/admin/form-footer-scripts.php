@@ -19,17 +19,128 @@ add_action('admin_footer', function () {
     <script>
         jQuery(document).ready(function($) {
             let frame_featured, frame_gallery;
+            let allowProgrammaticSubmit = false;
+
+            function showDecisionModal(options) {
+                const settings = $.extend({
+                    title: 'Hinweis',
+                    message: '',
+                    details: [],
+                    confirmText: 'Weiter',
+                    cancelText: 'Abbrechen',
+                    confirmClass: 'button-primary',
+                    showCancel: true
+                }, options || {});
+
+                return new Promise(resolve => {
+                    const modal = $('<div />', {
+                        class: 'beitrag-dialog',
+                        role: 'dialog',
+                        'aria-modal': 'true',
+                        'aria-labelledby': 'beitrag-dialog-title'
+                    });
+                    const panel = $('<div />', {
+                        class: 'beitrag-dialog__panel'
+                    }).appendTo(modal);
+
+                    $('<button />', {
+                        type: 'button',
+                        class: 'beitrag-dialog__close',
+                        text: '×',
+                        'aria-label': 'Hinweis schließen'
+                    }).appendTo(panel);
+
+                    $('<h2 />', {
+                        id: 'beitrag-dialog-title',
+                        text: settings.title
+                    }).appendTo(panel);
+
+                    if (settings.message) {
+                        $('<p />', {
+                            class: 'beitrag-dialog__message',
+                            text: settings.message
+                        }).appendTo(panel);
+                    }
+
+                    const details = settings.details.filter(Boolean);
+                    if (details.length) {
+                        const list = $('<ul />', {
+                            class: 'beitrag-dialog__list'
+                        }).appendTo(panel);
+                        details.forEach(detail => {
+                            $('<li />', {
+                                text: detail
+                            }).appendTo(list);
+                        });
+                    }
+
+                    const actions = $('<div />', {
+                        class: 'beitrag-dialog__actions'
+                    }).appendTo(panel);
+
+                    if (settings.showCancel) {
+                        $('<button />', {
+                            type: 'button',
+                            class: 'button button-secondary beitrag-dialog__cancel',
+                            text: settings.cancelText
+                        }).appendTo(actions);
+                    }
+
+                    $('<button />', {
+                        type: 'button',
+                        class: 'button ' + settings.confirmClass + ' beitrag-dialog__confirm',
+                        text: settings.confirmText
+                    }).appendTo(actions);
+
+                    function close(result) {
+                        modal.remove();
+                        resolve(result);
+                    }
+
+                    modal.on('click', function(event) {
+                        if (event.target === modal[0]) {
+                            close(false);
+                        }
+                    });
+                    modal.find('.beitrag-dialog__close, .beitrag-dialog__cancel').on('click', function() {
+                        close(false);
+                    });
+                    modal.find('.beitrag-dialog__confirm').on('click', function() {
+                        close(true);
+                    });
+
+                    $('body').append(modal);
+                    modal.find('.beitrag-dialog__confirm').trigger('focus');
+                });
+            }
+
+            function showInfoModal(title, message, details) {
+                return showDecisionModal({
+                    title: title,
+                    message: message,
+                    details: details || [],
+                    confirmText: 'Verstanden',
+                    showCancel: false
+                });
+            }
 
             $('#beitrag_ki_individuell').on('change', function() {
                 if ($(this).is(':checked')) {
                     $('#ki-excerpt-option').show();
                     $('#beitrag_excerpt_auto').prop('checked', true);
+                    $('#ki-tags-option').show();
+                    $('#beitrag_ki_tags_auto').prop('checked', true);
                     $('#ki-optionen-container').show();
+                    $('#beitrag-ai-enabled-animation').prop('hidden', false);
                 } else {
                     $('#ki-excerpt-option').hide();
                     $('#beitrag_excerpt_auto').prop('checked', false);
+                    $('#ki-tags-option').hide();
+                    $('#beitrag_ki_tags_auto').prop('checked', false);
                     $('#ki-optionen-container').hide();
+                    $('#beitrag-ai-enabled-animation').prop('hidden', true);
                 }
+                updateTagMode();
             });
 
             function updateExcerptVisibility() {
@@ -42,12 +153,153 @@ add_action('admin_footer', function () {
 
             $('#beitrag_ki_individuell, #beitrag_excerpt_auto').on('change', updateExcerptVisibility);
             updateExcerptVisibility();
+            $('#beitrag_ki_tags_auto').on('change', updateTagMode);
 
             if ($('#beitrag_ki_individuell').is(':checked')) {
                 $('#ki-optionen-container').show();
                 $('#ki-excerpt-option').show();
                 $('#beitrag_excerpt_auto').prop('checked', true);
+                $('#ki-tags-option').show();
+                $('#beitrag_ki_tags_auto').prop('checked', true);
+                $('#beitrag-ai-enabled-animation').prop('hidden', false);
             }
+
+            const tagState = [];
+            let isApplyingPreviewTags = false;
+
+            function normalizeTag(tag) {
+                return String(tag || '').replace(/\s+/g, ' ').replace(/^[,;\s]+|[,;\s]+$/g, '');
+            }
+
+            function tagKey(tag) {
+                return normalizeTag(tag).toLocaleLowerCase();
+            }
+
+            function syncTags() {
+                $('#beitrag_tags').val(tagState.join(', '));
+            }
+
+            function renderTags() {
+                const chips = $('#beitrag-tag-chips').empty();
+                if (!tagState.length && $('#beitrag_ki_individuell').is(':checked')) {
+                    $('<span />', {
+                        class: 'beitrag-tag-chip beitrag-tag-chip--placeholder',
+                        text: 'Noch keine KI-Schlagwörter erstellt'
+                    }).appendTo(chips);
+                }
+                tagState.forEach(function(tag) {
+                    const chip = $('<span />', {
+                        class: 'beitrag-tag-chip',
+                        text: tag
+                    });
+                    $('<button />', {
+                        type: 'button',
+                        class: 'beitrag-tag-chip__remove',
+                        text: '×',
+                        'aria-label': 'Schlagwort entfernen'
+                    }).on('click', function() {
+                        removeTag(tag);
+                    }).appendTo(chip);
+                    chips.append(chip);
+                });
+                syncTags();
+            }
+
+            function updateTagMode() {
+                const editorWrap = $('#beitrag-tag-editor-wrap');
+                const tagInput = $('#beitrag_tag_input');
+                const kiTagsSlot = $('#beitrag-ki-tags-slot');
+                const aiTagsEnabled = String(editorWrap.data('ai-tags-enabled')) === '1';
+                const isKiActive = $('#beitrag_ki_individuell').is(':checked') && aiTagsEnabled && $('#beitrag_ki_tags_auto').is(':checked');
+
+                if (!editorWrap.length) {
+                    return;
+                }
+
+                if (isKiActive && kiTagsSlot.length) {
+                    kiTagsSlot.prop('hidden', false).append(editorWrap);
+                    $('#beitrag-tags-row').hide();
+                    editorWrap.addClass('beitrag-tag-editor-wrap--ki');
+                    $('.beitrag-tag-editor').addClass('beitrag-tag-editor--locked');
+                    tagInput.prop('disabled', true).val('');
+                    $('#tag-hinweis').hide();
+                    renderTags();
+                    return;
+                }
+
+                $('#beitrag-tags-default-slot').append(editorWrap);
+                $('#beitrag-tags-row').show();
+                kiTagsSlot.prop('hidden', true);
+                editorWrap.removeClass('beitrag-tag-editor-wrap--ki');
+                $('.beitrag-tag-editor').removeClass('beitrag-tag-editor--locked');
+                tagInput.prop('disabled', false);
+                renderTags();
+            }
+
+            function addTag(tag) {
+                tag = normalizeTag(tag);
+                if (!tag) {
+                    return false;
+                }
+
+                const key = tagKey(tag);
+                const exists = tagState.some(function(existing) {
+                    return tagKey(existing) === key;
+                });
+
+                if (exists) {
+                    return false;
+                }
+
+                tagState.push(tag);
+                renderTags();
+                if (!isApplyingPreviewTags) {
+                    markPreviewDirty();
+                }
+                return true;
+            }
+
+            function addTags(tags) {
+                String(tags || '').split(',').forEach(addTag);
+            }
+
+            function removeTag(tag) {
+                const key = tagKey(tag);
+                const index = tagState.findIndex(function(existing) {
+                    return tagKey(existing) === key;
+                });
+
+                if (index >= 0) {
+                    tagState.splice(index, 1);
+                    renderTags();
+                    markPreviewDirty();
+                }
+            }
+
+            function initTags() {
+                const editor = $('.beitrag-tag-editor');
+                const initialTags = editor.data('initial-tags') || [];
+                initialTags.forEach(function(tag) {
+                    if (normalizeTag(tag)) {
+                        tagState.push(normalizeTag(tag));
+                    }
+                });
+                renderTags();
+            }
+
+            initTags();
+            updateTagMode();
+
+            $('#beitrag_tag_input').on('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    addTags($(this).val());
+                    $(this).val('');
+                }
+            }).on('blur', function() {
+                addTags($(this).val());
+                $(this).val('');
+            });
 
             function markPreviewDirty() {
                 $('#beitrag_preview_ready').val('0');
@@ -60,25 +312,72 @@ add_action('admin_footer', function () {
                 $('#beitrag_preview_model').val('');
                 $('#beitrag_preview_ai_hint').val('');
                 $('#beitrag_preview_style_group').val('');
+                $('#beitrag_preview_tags').val('');
+                $('#beitrag_preview_token').val('');
                 $('#beitrag-preview-button').prop('hidden', false);
             }
 
-            function validateSubmissionForm() {
+            function getValidationError() {
                 if ($('#beitrag_ki_individuell').is(':checked') && !$('#beitrag_ki_stilgruppe').val()) {
-                    alert('Bitte wähle einen Stil aus der Liste.');
-                    return false;
+                    return 'Bitte wähle einen Stil aus der Liste.';
                 }
 
                 const title = $('#beitrag_titel').val().trim();
                 const content = $('#beitrag_inhalt').val().trim();
                 const tags = $('#beitrag_tags').val().trim();
 
-                if (!title || !content || !tags) {
-                    alert('Bitte fülle alle Pflichtfelder aus: Titel, Inhalt und Schlagwörter.');
-                    return false;
+                const aiTagsEnabled = String($('#beitrag-tag-editor-wrap').data('ai-tags-enabled')) === '1';
+                const aiTagsActive = $('#beitrag_ki_individuell').is(':checked') && aiTagsEnabled && $('#beitrag_ki_tags_auto').is(':checked');
+
+                if (!title || !content || (!aiTagsActive && !tags)) {
+                    return 'Bitte fülle alle Pflichtfelder aus: Titel, Inhalt und Schlagwörter.';
                 }
 
-                return true;
+                return '';
+            }
+
+            function getSubmissionWarnings() {
+                const warnings = [];
+
+                if (!$('#beitragsbild_id').val()) {
+                    warnings.push('Du hast kein Beitragsbild ausgewählt. Das Beitragsbild ist wichtig für die Darstellung und wird empfohlen.');
+                }
+
+                if (!$('#beitrag_ki_individuell').is(':checked')) {
+                    warnings.push('Du hast die automatische Textverbesserung nicht aktiviert. Der Beitrag könnte dadurch an Qualität und Stil verlieren.');
+                }
+
+                return warnings;
+            }
+
+            function getDirectSubmitWarnings() {
+                const warnings = getSubmissionWarnings();
+                const hasPreview = $('#beitrag_preview_ready').val() === '1';
+
+                if (!hasPreview) {
+                    warnings.unshift('Du hast noch keine Vorschau erstellt. Der Beitrag wird direkt gespeichert, ohne dass du Titel, Text, Bilder und Schlagwörter vorher im Plugin prüfen konntest.');
+                }
+
+                if (!hasPreview && $('#beitrag_ki_individuell').is(':checked')) {
+                    warnings.push('KI kann Fehler machen oder Formulierungen unpassend gewichten. Prüfe den eingereichten Beitrag anschließend im Editor.');
+                }
+
+                return warnings;
+            }
+
+            function confirmSubmissionWarnings(actionText) {
+                const warnings = getSubmissionWarnings();
+                if (!warnings.length) {
+                    return Promise.resolve(true);
+                }
+
+                return showDecisionModal({
+                    title: 'Hinweis vor der ' + actionText,
+                    message: 'Bitte prüfe kurz, ob du trotzdem fortfahren möchtest.',
+                    details: warnings,
+                    confirmText: 'Trotzdem fortfahren',
+                    cancelText: 'Zurück zum Formular'
+                });
             }
 
             function setPreviewLoading(isLoading, useKiLoader) {
@@ -108,6 +407,13 @@ add_action('admin_footer', function () {
                 $('#beitrag_preview_model').val(preview.model || '');
                 $('#beitrag_preview_ai_hint').val(preview.ai_hint || '');
                 $('#beitrag_preview_style_group').val(preview.style_group || '');
+                $('#beitrag_preview_token').val(preview.token || '');
+                if (preview.tags) {
+                    isApplyingPreviewTags = true;
+                    addTags(preview.tags);
+                    isApplyingPreviewTags = false;
+                    $('#beitrag_preview_tags').val($('#beitrag_tags').val());
+                }
             }
 
             function renderPreview(preview) {
@@ -115,14 +421,38 @@ add_action('admin_footer', function () {
                 if (preview.category_name) {
                     metaParts.push('Kategorie: ' + preview.category_name);
                 }
-                if (preview.tags) {
-                    metaParts.push('Schlagwörter: ' + preview.tags);
-                }
                 if (preview.ki_active) {
                     metaParts.push('KI überarbeitet');
                 }
 
                 $('#beitrag-preview-meta').text(metaParts.join(' · '));
+                const previewTags = String(preview.tags || '')
+                    .split(',')
+                    .map(tag => tag.trim())
+                    .filter(Boolean);
+
+                const previewTagBox = $('#beitrag-preview-tags').empty();
+                if (previewTags.length) {
+                    $('<div />', {
+                        class: 'beitrag-preview__tags-label',
+                        text: 'Schlagwörter'
+                    }).appendTo(previewTagBox);
+
+                    const previewTagList = $('<div />', {
+                        class: 'beitrag-preview__tags-list'
+                    }).appendTo(previewTagBox);
+
+                    previewTags.forEach(function(tag) {
+                        $('<span />', {
+                            class: 'beitrag-preview__tag',
+                            text: tag
+                        }).appendTo(previewTagList);
+                    });
+                    previewTagBox.prop('hidden', false);
+                } else {
+                    previewTagBox.prop('hidden', true);
+                }
+
                 $('#beitrag-preview-title').text(preview.title || '');
                 $('#beitrag-preview-featured-image').html(preview.featured_image_html || '');
                 $('#beitrag-preview-body').html(preview.content_html || '');
@@ -142,8 +472,13 @@ add_action('admin_footer', function () {
                 }, 400);
             }
 
-            function createPreview(includeChangeRequest) {
-                if (!validateSubmissionForm()) {
+            async function createPreview(includeChangeRequest) {
+                const validationError = getValidationError();
+                if (validationError) {
+                    await showInfoModal('Eingaben unvollständig', validationError);
+                    return;
+                }
+                if (!includeChangeRequest && !(await confirmSubmissionWarnings('Vorschau-Erstellung'))) {
                     return;
                 }
 
@@ -160,7 +495,9 @@ add_action('admin_footer', function () {
                     'beitrag_preview_ki_active',
                     'beitrag_preview_model',
                     'beitrag_preview_ai_hint',
-                    'beitrag_preview_style_group'
+                    'beitrag_preview_style_group',
+                    'beitrag_preview_tags',
+                    'beitrag_preview_token'
                 ].forEach(function(fieldName) {
                     formData.delete(fieldName);
                 });
@@ -180,7 +517,7 @@ add_action('admin_footer', function () {
                     .then(result => {
                         if (!result.success) {
                             const message = result.data && result.data.message ? result.data.message : 'Die Vorschau konnte nicht erstellt werden.';
-                            alert(message);
+                            showInfoModal('Vorschau nicht erstellt', message);
                             return;
                         }
 
@@ -188,7 +525,7 @@ add_action('admin_footer', function () {
                         renderPreview(result.data.preview);
                     })
                     .catch(() => {
-                        alert('Die Vorschau konnte nicht erstellt werden.');
+                        showInfoModal('Vorschau nicht erstellt', 'Die Vorschau konnte nicht erstellt werden.');
                     })
                     .finally(() => {
                         setPreviewLoading(false, false);
@@ -201,7 +538,7 @@ add_action('admin_footer', function () {
 
             $('#beitrag-preview-revise-button').on('click', function() {
                 if (!$('#beitrag_ki_individuell').is(':checked')) {
-                    alert('Bitte aktiviere die automatische Textverbesserung, um Änderungswünsche an die KI zu senden.');
+                    showInfoModal('KI nicht aktiviert', 'Bitte aktiviere die automatische Textverbesserung, um Änderungswünsche an die KI zu senden.');
                     return;
                 }
 
@@ -312,23 +649,30 @@ add_action('admin_footer', function () {
                 }
             });
 
-            $(document).on('submit', '#beitragseinreichung-formular', function(e) {
-                if (!validateSubmissionForm()) {
-                    e.preventDefault();
+            $(document).on('submit', '#beitragseinreichung-formular', async function(e) {
+                if (allowProgrammaticSubmit) {
+                    allowProgrammaticSubmit = false;
                     return;
                 }
 
-                const hasImage = $('#beitragsbild_id').val();
+                e.preventDefault();
 
-                let message = "Möchtest du den Beitrag wirklich einreichen?";
-                if (!hasImage) {
-                    message += "\n\n⚠️ Hinweis: Du hast kein Beitragsbild ausgewählt. Das Beitragsbild ist wichtig für die Darstellung und wird empfohlen.";
+                const validationError = getValidationError();
+                if (validationError) {
+                    await showInfoModal('Eingaben unvollständig', validationError);
+                    return;
                 }
-                if (!$('#beitrag_ki_individuell').is(':checked')) {
-                    message += "\n\n⚠️ Hinweis: Du hast die automatische Textverbesserung nicht aktiviert.\nDer Beitrag könnte dadurch an Qualität und Stil verlieren.\nDie KI passt Texte automatisch an den Stil der Webseite an.";
-                }
-                if (!confirm(message)) {
-                    e.preventDefault();
+
+                const warnings = getDirectSubmitWarnings();
+                const confirmed = await showDecisionModal({
+                    title: $('#beitrag_preview_ready').val() === '1' ? 'Beitrag einreichen?' : 'Ohne Vorschau einreichen?',
+                    message: warnings.length ? 'Bitte lies die Hinweise, bevor du den Beitrag speicherst.' : 'Der Beitrag wird jetzt gespeichert und zur Prüfung abgelegt.',
+                    details: warnings,
+                    confirmText: 'Beitrag einreichen',
+                    cancelText: 'Zurück zum Formular'
+                });
+
+                if (!confirmed) {
                     return;
                 }
 
@@ -345,6 +689,9 @@ add_action('admin_footer', function () {
                         scrollTop: $('#submit-loader').offset().top - 40
                     }, 500);
                 }
+
+                allowProgrammaticSubmit = true;
+                this.submit();
             });
 
             const urlParams = new URLSearchParams(window.location.search);

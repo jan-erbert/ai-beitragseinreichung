@@ -35,27 +35,50 @@ add_action('admin_init', function () {
         $ki_aktiv = ($ki_global && !empty($_POST['beitrag_ki_individuell'])) ? true : false;
 
         if ($has_preview) {
-            $titel = sanitize_text_field(wp_unslash($_POST['beitrag_preview_title'] ?? ''));
-            $inhalt = wp_kses_post(wp_unslash($_POST['beitrag_preview_content'] ?? ''));
-            $excerpt = sanitize_text_field(wp_unslash($_POST['beitrag_preview_excerpt'] ?? ''));
-            $original_titel = sanitize_text_field(wp_unslash($_POST['beitrag_preview_original_title'] ?? $input['title']));
-            $original_inhalt = wp_kses_post(wp_unslash($_POST['beitrag_preview_original_content'] ?? $input['content']));
-            $ki_aktiv = !empty($_POST['beitrag_preview_ki_active']);
-            $modell = beitrag_normalize_ai_model(sanitize_text_field(wp_unslash($_POST['beitrag_preview_model'] ?? '')));
-            $zusatz = sanitize_textarea_field(wp_unslash($_POST['beitrag_preview_ai_hint'] ?? ''));
-            $stilgruppe_label = sanitize_text_field(wp_unslash($_POST['beitrag_preview_style_group'] ?? ''));
+            $preview_token = sanitize_text_field(wp_unslash($_POST['beitrag_preview_token'] ?? ''));
+            $stored_preview = function_exists('beitragseinreichung_get_stored_submission_preview') ? beitragseinreichung_get_stored_submission_preview($preview_token) : null;
+
+            if ($stored_preview) {
+                $titel = sanitize_text_field((string) ($stored_preview['title'] ?? ''));
+                $inhalt = wp_kses_post((string) ($stored_preview['content'] ?? ''));
+                $excerpt = sanitize_text_field((string) ($stored_preview['excerpt'] ?? ''));
+                $original_titel = sanitize_text_field((string) ($stored_preview['original_title'] ?? $input['title']));
+                $original_inhalt = wp_kses_post((string) ($stored_preview['original_content'] ?? $input['content']));
+                $ki_aktiv = !empty($stored_preview['ki_active']);
+                $modell = beitrag_normalize_ai_model((string) ($stored_preview['model'] ?? ''));
+                $zusatz = sanitize_textarea_field((string) ($stored_preview['ai_hint'] ?? ''));
+                $stilgruppe_label = sanitize_text_field((string) ($stored_preview['style_group'] ?? ''));
+                $tags = sanitize_text_field((string) ($stored_preview['tags'] ?? $tags));
+                beitragseinreichung_delete_stored_submission_preview($preview_token);
+            } else {
+                $titel = sanitize_text_field(wp_unslash($_POST['beitrag_preview_title'] ?? ''));
+                $inhalt = wp_kses_post(wp_unslash($_POST['beitrag_preview_content'] ?? ''));
+                $excerpt = sanitize_text_field(wp_unslash($_POST['beitrag_preview_excerpt'] ?? ''));
+                $original_titel = sanitize_text_field(wp_unslash($_POST['beitrag_preview_original_title'] ?? $input['title']));
+                $original_inhalt = wp_kses_post(wp_unslash($_POST['beitrag_preview_original_content'] ?? $input['content']));
+                $ki_aktiv = !empty($_POST['beitrag_preview_ki_active']);
+                $modell = beitrag_normalize_ai_model(sanitize_text_field(wp_unslash($_POST['beitrag_preview_model'] ?? '')));
+                $zusatz = sanitize_textarea_field(wp_unslash($_POST['beitrag_preview_ai_hint'] ?? ''));
+                $stilgruppe_label = sanitize_text_field(wp_unslash($_POST['beitrag_preview_style_group'] ?? ''));
+                if (!empty($_POST['beitrag_preview_tags'])) {
+                    $tags = sanitize_text_field(wp_unslash($_POST['beitrag_preview_tags']));
+                }
+            }
         } elseif ($ki_aktiv) {
             $modell = beitrag_normalize_ai_model(get_option('beitragseinreichung_ki_modell', beitrag_get_default_ai_model()));
             $zusatz = sanitize_textarea_field(wp_unslash($_POST['beitrag_ki_hinweis'] ?? ''));
             $stilgruppe_label = !empty($_POST['beitrag_ki_stilgruppe']) ? sanitize_text_field(wp_unslash($_POST['beitrag_ki_stilgruppe'])) : '';
             $excerpt_auto = !empty($_POST['beitrag_excerpt_auto']);
-            $ki_ergebnis = beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgruppe_label, $excerpt_auto);
+            $ki_ergebnis = beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgruppe_label, $excerpt_auto, $tags, !empty($input['ki_tags_active']));
 
             $titel = $ki_ergebnis['title'];
             $titel = beitrag_bereinige_titel_text($titel, $original_titel);
             $inhalt = $ki_ergebnis['content'];
             $excerpt = $ki_ergebnis['excerpt'];
+            $tags = implode(', ', beitragseinreichung_merge_tags($tags, $ki_ergebnis['tags'] ?? []));
         }
+
+        $tags = implode(', ', beitragseinreichung_merge_tags(beitragseinreichung_get_default_tags(), $tags));
 
         $titel = beitrag_bereinige_titel_text($titel, $original_titel);
 
@@ -107,7 +130,7 @@ add_action('admin_init', function () {
 
         if ($beitrag_id) {
             // Tags hinzufügen
-            wp_set_post_tags($beitrag_id, $tags);
+            wp_set_post_tags($beitrag_id, beitragseinreichung_parse_tags($tags));
 
             beitragseinreichung_sende_beitrag_benachrichtigung($beitrag_id, $titel, $inhalt, $ki_aktiv, $modell, $zusatz, $excerpt, $gallery_ids);
 

@@ -38,6 +38,17 @@ function beitragseinreichung_is_plugin_admin_page()
 }
 
 /**
+ * Prueft, ob der Versionshinweis auf dieser Seite manuell geoeffnet werden kann.
+ */
+function beitragseinreichung_is_update_popup_trigger_page()
+{
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page check for conditional admin UI.
+    $page = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+
+    return $page === 'beitragseinreichung_einstellungen' && current_user_can('beitragseinreichung_settings');
+}
+
+/**
  * Prueft, ob der aktuelle Nutzer den Hinweis sehen darf.
  */
 function beitragseinreichung_user_can_see_update_popup()
@@ -74,40 +85,77 @@ add_action('admin_footer', function () {
 
     $user_id = get_current_user_id();
     $meta_key = beitragseinreichung_get_update_popup_meta_key();
+    $has_seen = get_user_meta($user_id, $meta_key, true);
+    $can_open_manually = beitragseinreichung_is_update_popup_trigger_page();
 
-    if (get_user_meta($user_id, $meta_key, true)) {
+    if ($has_seen && !$can_open_manually) {
         return;
     }
 
     $version = beitragseinreichung_get_plugin_version();
     $nonce = wp_create_nonce('beitragseinreichung_update_popup');
     $can_manage_settings = current_user_can('beitragseinreichung_settings');
+    $release_lottie_path = plugin_dir_path(dirname(__DIR__, 2) . '/wp-form.php') . 'assets/lottie/release-animation.json';
+    $release_lottie_url = plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php') . 'assets/lottie/release-animation.json';
     ?>
-    <div class="beitrag-update-popup" role="dialog" aria-modal="true" aria-labelledby="beitrag-update-popup-title">
+    <div class="beitrag-update-popup" role="dialog" aria-modal="true" aria-labelledby="beitrag-update-popup-title" <?php echo ($has_seen || $can_open_manually) ? 'hidden' : ''; ?>>
         <div class="beitrag-update-popup__panel">
             <button type="button" class="beitrag-update-popup__close" aria-label="<?php echo esc_attr__('Hinweis schliessen', 'ai-beitragseinreichung'); ?>">×</button>
 
-            <p class="beitrag-update-popup__eyebrow"><?php echo esc_html(sprintf('Version %s', $version)); ?></p>
-            <h2 id="beitrag-update-popup-title"><?php echo esc_html__('Beiträge einreichen ist jetzt angenehmer', 'ai-beitragseinreichung'); ?></h2>
+            <div class="beitrag-update-popup__intro">
+                <div class="beitrag-update-popup__visual" aria-hidden="true">
+                    <?php if (file_exists($release_lottie_path)) : ?>
+                        <lottie-player
+                            src="<?php echo esc_url($release_lottie_url); ?>"
+                            background="transparent"
+                            speed="0.85"
+                            style="width: 58px; height: 58px;"
+                            loop
+                            autoplay>
+                        </lottie-player>
+                    <?php else : ?>
+                        <span>✨</span>
+                    <?php endif; ?>
+                </div>
+                <div>
+                    <p class="beitrag-update-popup__eyebrow"><?php echo esc_html(sprintf('Release %s', $version)); ?></p>
+                    <h2 id="beitrag-update-popup-title"><?php echo esc_html__('Die Beitragseinreichung ist deutlich gewachsen', 'ai-beitragseinreichung'); ?></h2>
+                </div>
+            </div>
 
-            <p><?php echo esc_html__('Die neue Version hilft dir dabei, Beiträge klarer vorzubereiten und bessere Vorschläge von der KI zu bekommen.', 'ai-beitragseinreichung'); ?></p>
+            <p><?php echo esc_html__('Seit der letzten größeren Version ist das Einreichen, Prüfen und Überarbeiten von Beiträgen spürbar angenehmer geworden. Du kannst Inhalte jetzt besser vorbereiten, in Ruhe prüfen und gezielter mit der KI arbeiten.', 'ai-beitragseinreichung'); ?></p>
 
-            <ul>
-                <li><?php echo esc_html__('Titel, Beitragstext und Textauszug passen jetzt besser zusammen.', 'ai-beitragseinreichung'); ?></li>
-                <li><?php echo esc_html__('Lange oder unpassend formatierte Titel werden zuverlässiger vermieden.', 'ai-beitragseinreichung'); ?></li>
-                <li><?php echo esc_html__('Zusätzliche Bilder werden im Beitrag schöner dargestellt.', 'ai-beitragseinreichung'); ?></li>
+            <div class="beitrag-update-popup__highlights">
+                <div>
+                    <strong><?php echo esc_html__('Vorschau vor dem Speichern', 'ai-beitragseinreichung'); ?></strong>
+                    <p><?php echo esc_html__('Beiträge können jetzt vor dem finalen Einreichen geprüft und mit einem konkreten Änderungswunsch erneut überarbeitet werden.', 'ai-beitragseinreichung'); ?></p>
+                </div>
+                <div>
+                    <strong><?php echo esc_html__('Bessere KI-Unterstützung', 'ai-beitragseinreichung'); ?></strong>
+                    <p><?php echo esc_html__('Titel, Textauszug und Schlagwörter arbeiten nun besser zusammen. KI-Schlagwörter können automatisch vorgeschlagen oder pro Beitrag manuell gepflegt werden.', 'ai-beitragseinreichung'); ?></p>
+                </div>
+                <div>
+                    <strong><?php echo esc_html__('Schönere Bilder und Benachrichtigungen', 'ai-beitragseinreichung'); ?></strong>
+                    <p><?php echo esc_html__('Zusatzbilder werden sauberer dargestellt und E-Mails zeigen neue Einreichungen übersichtlicher als Vorschau.', 'ai-beitragseinreichung'); ?></p>
+                </div>
                 <?php if ($can_manage_settings) : ?>
-                    <li><?php echo esc_html__('Die KI-Auswahl und Benachrichtigungen in den Einstellungen sind klarer geworden.', 'ai-beitragseinreichung'); ?></li>
+                    <div>
+                        <strong><?php echo esc_html__('Aufgeräumte Einstellungen', 'ai-beitragseinreichung'); ?></strong>
+                        <p><?php echo esc_html__('Modelle, Stilgruppen, Benachrichtigungen und Schlagwörter sind klarer organisiert und leichter zu pflegen.', 'ai-beitragseinreichung'); ?></p>
+                    </div>
                 <?php endif; ?>
-            </ul>
+            </div>
 
             <div class="beitrag-update-popup__actions">
+                <a class="button button-primary" href="<?php echo esc_url('https://github.com/jan-erbert/ai-beitragseinreichung/wiki'); ?>" target="_blank" rel="noopener noreferrer">
+                    <?php echo esc_html__('Wiki öffnen', 'ai-beitragseinreichung'); ?>
+                </a>
                 <?php if ($can_manage_settings) : ?>
                     <a class="button button-secondary" href="<?php echo esc_url(admin_url('admin.php?page=beitragseinreichung_einstellungen')); ?>">
                         <?php echo esc_html__('Einstellungen ansehen', 'ai-beitragseinreichung'); ?>
                     </a>
                 <?php endif; ?>
-                <button type="button" class="button button-primary beitrag-update-popup__confirm">
+                <button type="button" class="button beitrag-update-popup__confirm">
                     <?php echo esc_html__('Verstanden', 'ai-beitragseinreichung'); ?>
                 </button>
             </div>
@@ -126,14 +174,18 @@ add_action('admin_footer', function () {
             z-index: 100000;
         }
 
+        .beitrag-update-popup[hidden] {
+            display: none;
+        }
+
         .beitrag-update-popup__panel {
             background: #fff;
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
-            max-width: 620px;
+            max-width: 680px;
             padding: 28px;
             position: relative;
-            width: min(620px, 100%);
+            width: min(680px, 100%);
         }
 
         .beitrag-update-popup__close {
@@ -154,14 +206,40 @@ add_action('admin_footer', function () {
             font-size: 12px;
             font-weight: 700;
             letter-spacing: 0.04em;
-            margin: 0 36px 8px 0;
+            margin: 0 36px 6px 0;
             text-transform: uppercase;
+        }
+
+        .beitrag-update-popup__intro {
+            align-items: center;
+            display: grid;
+            gap: 16px;
+            grid-template-columns: auto minmax(0, 1fr);
+            margin: 0 36px 14px 0;
+        }
+
+        .beitrag-update-popup__visual {
+            align-items: center;
+            background: linear-gradient(180deg, #f8fbff 0%, #edf6ff 100%);
+            border: 1px solid #d8e7f7;
+            border-radius: 50%;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 8px 18px rgba(34, 113, 177, 0.12);
+            display: flex;
+            height: 72px;
+            justify-content: center;
+            overflow: hidden;
+            width: 72px;
+        }
+
+        .beitrag-update-popup__visual span {
+            font-size: 28px;
+            line-height: 1;
         }
 
         .beitrag-update-popup h2 {
             font-size: 24px;
             line-height: 1.25;
-            margin: 0 36px 12px 0;
+            margin: 0;
         }
 
         .beitrag-update-popup p {
@@ -178,6 +256,30 @@ add_action('admin_footer', function () {
 
         .beitrag-update-popup li {
             margin: 8px 0;
+        }
+
+        .beitrag-update-popup__highlights {
+            display: grid;
+            gap: 10px;
+            margin: 0 0 22px;
+        }
+
+        .beitrag-update-popup__highlights > div {
+            background: #fff;
+            border: 1px solid #dcdcde;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+            padding: 12px;
+        }
+
+        .beitrag-update-popup__highlights strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .beitrag-update-popup__highlights p {
+            font-size: 14px;
+            margin: 0;
         }
 
         .beitrag-update-popup__actions {
@@ -197,6 +299,16 @@ add_action('admin_footer', function () {
                 padding: 22px;
             }
 
+            .beitrag-update-popup__intro {
+                grid-template-columns: 1fr;
+                margin-right: 36px;
+            }
+
+            .beitrag-update-popup__visual {
+                height: 62px;
+                width: 62px;
+            }
+
             .beitrag-update-popup__actions {
                 justify-content: stretch;
             }
@@ -211,6 +323,7 @@ add_action('admin_footer', function () {
     <script>
         (function () {
             var popup = document.querySelector('.beitrag-update-popup');
+            var showButton = document.getElementById('beitrag-update-popup-show');
             if (!popup) {
                 return;
             }
@@ -225,7 +338,18 @@ add_action('admin_footer', function () {
                     credentials: 'same-origin',
                     body: body
                 }).finally(function () {
+                    if (showButton) {
+                        popup.hidden = true;
+                        return;
+                    }
+
                     popup.remove();
+                });
+            }
+
+            if (showButton) {
+                showButton.addEventListener('click', function () {
+                    popup.hidden = false;
                 });
             }
 

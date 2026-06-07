@@ -9,7 +9,9 @@ function beitragseinreichung_formular_anzeige()
 {
     $excerpt_aktiv = get_option('beitragseinreichung_excerpt_aktiv', 1);
     $ki_global_aktiv = get_option('beitragseinreichung_ki_aktiv');
+    $ki_tags_aktiv = get_option('beitragseinreichung_ki_tags_aktiv');
     $plugin_url = plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php');
+    $initial_tags = beitragseinreichung_get_default_tags();
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect parameter for the success notice.
     $erfolg = isset($_GET['erfolg']) ? sanitize_text_field(wp_unslash($_GET['erfolg'])) : '';
     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only redirect parameter for the success notice.
@@ -59,6 +61,17 @@ function beitragseinreichung_formular_anzeige()
                                     <strong>Texte automatisch verbessern</strong> (Empfohlen)
                                 </label>
                                 <p class="description">Wenn aktiviert, werden Titel und Inhalt dieses Beitrags mit dem gewählten KI-Modell stilistisch überarbeitet.</p>
+                                <div id="beitrag-ai-enabled-animation" class="beitrag-ai-enabled-animation" hidden aria-hidden="true">
+                                    <lottie-player
+                                        src="<?php echo esc_url($plugin_url . 'assets/lottie/ai-enabled-animation.json'); ?>"
+                                        background="transparent"
+                                        speed="0.9"
+                                        style="width: 74px; height: 74px;"
+                                        loop
+                                        autoplay>
+                                    </lottie-player>
+                                    <span>KI-Unterstützung ist aktiv</span>
+                                </div>
                                 <?php if ($excerpt_aktiv): ?>
                                     <div id="ki-excerpt-option" style="margin-top: 10px; display: none;">
                                         <label>
@@ -66,6 +79,15 @@ function beitragseinreichung_formular_anzeige()
                                             <strong>Textauszug automatisch generieren</strong>
                                         </label>
                                         <p class="description">Ein kurzer Vorschautext wird automatisch aus dem Inhalt erstellt.</p>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($ki_tags_aktiv): ?>
+                                    <div id="ki-tags-option" style="margin-top: 10px; display: none;">
+                                        <label>
+                                            <input type="checkbox" name="beitrag_ki_tags_auto" id="beitrag_ki_tags_auto" value="1" checked>
+                                            <strong>Schlagwörter automatisch generieren</strong>
+                                        </label>
+                                        <p class="description">Wenn aktiviert, schlägt die KI passende Schlagwörter in der Vorschau vor.</p>
                                     </div>
                                 <?php endif; ?>
                                 <div id="ki-optionen-container" style="display: none;">
@@ -86,17 +108,30 @@ function beitragseinreichung_formular_anzeige()
                                         <label for="beitrag_ki_hinweis">Zusätzliche Hinweise für die KI (optional)</label><br>
                                         <textarea name="beitrag_ki_hinweis" id="beitrag_ki_hinweis" rows="3" class="large-text" placeholder="Optional: Bei besonderen zusätzlichen Stilwünschen oder Hinweisen."></textarea>
                                     </p>
+                                    <div id="beitrag-ki-tags-slot" class="beitrag-ki-tags-slot" hidden>
+                                        <strong>Schlagwörter durch KI</strong>
+                                        <p class="description">Die KI schlägt passende Schlagwörter in der Vorschau vor. Deaktiviere die automatische Generierung, um eigene Schlagwörter einzutragen.</p>
+                                    </div>
                                 </div>
                             </div>
                         </td>
                     </tr>
                 <?php endif; ?>
-                <tr>
+                <tr id="beitrag-tags-row">
                     <th><label for="beitrag_tags">Schlagwörter <span class="required">*</span></label></th>
                     <td>
-                        <input type="text" name="beitrag_tags" id="beitrag_tags" class="regular-text" placeholder="z.B. Marathon, Bad Kreuznach, 2025">
+                        <div id="beitrag-tags-default-slot">
+                            <div id="beitrag-tag-editor-wrap" class="beitrag-tag-editor-wrap" data-ai-tags-enabled="<?php echo esc_attr($ki_tags_aktiv ? '1' : '0'); ?>">
+                                <div class="beitrag-tag-editor" data-initial-tags="<?php echo esc_attr(wp_json_encode($initial_tags)); ?>">
+                                    <div id="beitrag-tag-chips" class="beitrag-tag-chips"></div>
+                                    <input type="text" id="beitrag_tag_input" class="regular-text" placeholder="Schlagwort eingeben und Enter oder Komma drücken">
+                                </div>
+                                <p class="description beitrag-tag-editor__hint">Mehrere Schlagwörter kannst du mit Komma oder Enter als Kacheln hinzufügen.</p>
+                            </div>
+                        </div>
+                        <input type="hidden" name="beitrag_tags" id="beitrag_tags" value="<?php echo esc_attr(implode(', ', $initial_tags)); ?>">
                         <p id="tag-hinweis" style="display:none; color:#a00; font-size:0.9em; margin-top:6px;">
-                            ⚠️ Bitte trenne mehrere Schlagwörter durch Kommata – z. B. <em>2025, Outdoor Sport, Frankfurt</em>
+                            ⚠️ Tipp: Mehrere Schlagwörter kannst du mit Komma oder Enter als Kacheln hinzufügen – z. B. <em>2026, Outdoor Sport, Frankfurt</em>
                         </p>
                     </td>
                 </tr>
@@ -146,6 +181,8 @@ function beitragseinreichung_formular_anzeige()
             <input type="hidden" name="beitrag_preview_model" id="beitrag_preview_model" value="">
             <textarea name="beitrag_preview_ai_hint" id="beitrag_preview_ai_hint" hidden></textarea>
             <input type="hidden" name="beitrag_preview_style_group" id="beitrag_preview_style_group" value="">
+            <input type="hidden" name="beitrag_preview_tags" id="beitrag_preview_tags" value="">
+            <input type="hidden" name="beitrag_preview_token" id="beitrag_preview_token" value="">
 
             <div id="beitrag-preview-panel" class="beitrag-preview" hidden>
                 <h2>Vorschau prüfen</h2>
@@ -153,6 +190,7 @@ function beitragseinreichung_formular_anzeige()
 
                 <div class="beitrag-preview__content">
                     <p class="beitrag-preview__meta" id="beitrag-preview-meta"></p>
+                    <div class="beitrag-preview__tags" id="beitrag-preview-tags" hidden></div>
                     <h3 id="beitrag-preview-title"></h3>
                     <div id="beitrag-preview-featured-image"></div>
                     <div id="beitrag-preview-excerpt"></div>
@@ -196,6 +234,14 @@ function beitragseinreichung_formular_anzeige()
                 Anleitung zur Beitragseinreichung im Wiki anzeigen →
             </a>
         </p>
+        <p style="margin-top: 8px; font-size: 0.95em;">
+            🐞 <a href="https://github.com/jan-erbert/ai-beitragseinreichung/issues" target="_blank" rel="noopener noreferrer">
+                Fehler oder Problem im GitHub-Issue-Tracker melden →
+            </a>
+        </p>
+        <p class="beitrag-plugin-version">
+            AI Beitragseinreichung <?php echo esc_html('v' . BEITRAGSEINREICHUNG_VERSION); ?>
+        </p>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -222,7 +268,7 @@ function beitragseinreichung_formular_anzeige()
             updateZieltext();
         });
         document.addEventListener('DOMContentLoaded', function() {
-            const tagInput = document.getElementById('beitrag_tags');
+            const tagInput = document.getElementById('beitrag_tag_input');
             const hinweis = document.getElementById('tag-hinweis');
 
             function triggerCheck() {

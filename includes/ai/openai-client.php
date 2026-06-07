@@ -82,15 +82,22 @@ function beitrag_ki_get_optimized_post_schema()
                 'type' => 'string',
                 'description' => 'Optionaler Textauszug oder leerer String.',
             ],
+            'tags' => [
+                'type' => 'array',
+                'description' => 'Passende Schlagwörter als kurze Begriffe.',
+                'items' => [
+                    'type' => 'string',
+                ],
+            ],
         ],
-        'required' => ['title', 'content', 'excerpt'],
+        'required' => ['title', 'content', 'excerpt', 'tags'],
     ];
 }
 
 /**
  * Optimiert Beitragstitel, Inhalt und optional Textauszug in einem KI-Aufruf.
  */
-function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgruppe_label, $excerpt_auto = false)
+function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgruppe_label, $excerpt_auto = false, $manual_tags = '', $generate_tags = true)
 {
     global $beitrag_ki_fehler, $beitrag_ki_fehler_meldung;
 
@@ -104,20 +111,22 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
             'title' => $titel,
             'content' => $inhalt,
             'excerpt' => '',
+            'tags' => [],
         ];
     }
 
     $stil = beitrag_ki_ermittle_stil_prompt($stilgruppe_label);
-    $prompt = beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz, $excerpt_auto);
+    $prompt = beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz, $excerpt_auto, $manual_tags, $generate_tags);
 
     if (strlen($prompt) > 50000) {
         $beitrag_ki_fehler = true;
-        $beitrag_ki_fehler_meldung = 'Der Text ist fuer die KI-Vorschau zu lang. Bitte kuerze den Beitrag oder die Zusatzhinweise.';
+        $beitrag_ki_fehler_meldung = 'Der Text ist für die KI-Vorschau zu lang. Bitte kürze den Beitrag oder die Zusatzhinweise.';
 
         return [
             'title' => $titel,
             'content' => $inhalt,
             'excerpt' => '',
+            'tags' => [],
         ];
     }
 
@@ -149,13 +158,13 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
     if (is_wp_error($response)) {
         $beitrag_ki_fehler = true;
         $beitrag_ki_fehler_meldung = $response->get_error_message();
-        error_log('OpenAI Fehler: ' . $response->get_error_message());
         beitrag_ki_admin_benachrichtigen('Fehler: ' . $response->get_error_message());
 
         return [
             'title' => $titel,
             'content' => $inhalt,
             'excerpt' => '',
+            'tags' => [],
         ];
     }
 
@@ -171,6 +180,7 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
             'title' => $titel,
             'content' => $inhalt,
             'excerpt' => '',
+            'tags' => [],
         ];
     }
 
@@ -179,13 +189,14 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
 
     if (!$data || empty($data['title']) || empty($data['content'])) {
         $beitrag_ki_fehler = true;
-        $beitrag_ki_fehler_meldung = 'Strukturierte KI-Antwort war unvollstaendig oder ungueltig.';
-        beitrag_ki_admin_benachrichtigen('Strukturierte KI-Antwort war unvollstaendig oder ungueltig.');
+        $beitrag_ki_fehler_meldung = 'Strukturierte KI-Antwort war unvollständig oder ungültig.';
+        beitrag_ki_admin_benachrichtigen('Strukturierte KI-Antwort war unvollständig oder ungültig.');
 
         return [
             'title' => $titel,
             'content' => $inhalt,
             'excerpt' => '',
+            'tags' => [],
         ];
     }
 
@@ -193,6 +204,7 @@ function beitrag_ki_optimiere_beitrag($titel, $inhalt, $modell, $zusatz, $stilgr
         'title' => sanitize_text_field((string) $data['title']),
         'content' => wp_kses_post((string) $data['content']),
         'excerpt' => isset($data['excerpt']) ? sanitize_text_field((string) $data['excerpt']) : '',
+        'tags' => !empty($data['tags']) && is_array($data['tags']) ? beitragseinreichung_parse_tags($data['tags']) : [],
     ];
 }
 
@@ -215,7 +227,7 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
 
 
     if (stripos($ziel, 'Beitragstitel') !== false) {
-        $system_message = "Du formulierst kurze WordPress-Beitragstitel. Gib nur einen einzelnen Titel zurueck.";
+        $system_message = "Du formulierst kurze WordPress-Beitragstitel. Gib nur einen einzelnen Titel zurück.";
         $prompt = <<<EOT
         Formuliere aus dem folgenden Titel einen kurzen, klaren WordPress-Beitragstitel.
         Regeln:
@@ -224,7 +236,7 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
         - Keine Markdown-Formatierung, keine Sternchen, keine HTML-Tags.
         - Emojis sind erlaubt, wenn sie zur Stilgruppe passen, aber maximal 1-2.
         - Keine neuen Fakten erfinden.
-        - Keine Details aus dem Beitragstext hinzufuegen, die nicht im Titel stehen.
+        - Keine Details aus dem Beitragstext hinzufügen, die nicht im Titel stehen.
         Stil: $stil
 
         Titel:
@@ -278,7 +290,6 @@ function beitrag_ki_verbessere_text($text, $ziel = 'Beitragstitel oder Inhalt', 
 
     if (is_wp_error($response)) {
         $beitrag_ki_fehler = true;
-        error_log('OpenAI Fehler: ' . $response->get_error_message());
 
         // Admin benachrichtigen
         beitrag_ki_admin_benachrichtigen('Fehler: ' . $response->get_error_message());

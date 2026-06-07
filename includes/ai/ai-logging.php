@@ -367,6 +367,81 @@ function beitragseinreichung_ki_log_render_assets()
 
     echo '<script>
     jQuery(document).ready(function($){
+        function showKiLogDialog(options) {
+            const settings = $.extend({
+                title: "Hinweis",
+                message: "",
+                confirmText: "Weiter",
+                cancelText: "Abbrechen",
+                showCancel: false
+            }, options || {});
+
+            return new Promise(resolve => {
+                const modal = $("<div />", {
+                    class: "beitrag-dialog",
+                    role: "dialog",
+                    "aria-modal": "true"
+                });
+                const panel = $("<div />", {
+                    class: "beitrag-dialog__panel"
+                }).appendTo(modal);
+
+                $("<button />", {
+                    type: "button",
+                    class: "beitrag-dialog__close",
+                    text: "×",
+                    "aria-label": "Hinweis schließen"
+                }).appendTo(panel);
+
+                $("<h2 />", {
+                    text: settings.title
+                }).appendTo(panel);
+
+                $("<p />", {
+                    class: "beitrag-dialog__message",
+                    text: settings.message
+                }).appendTo(panel);
+
+                const actions = $("<div />", {
+                    class: "beitrag-dialog__actions"
+                }).appendTo(panel);
+
+                if (settings.showCancel) {
+                    $("<button />", {
+                        type: "button",
+                        class: "button button-secondary beitrag-dialog__cancel",
+                        text: settings.cancelText
+                    }).appendTo(actions);
+                }
+
+                $("<button />", {
+                    type: "button",
+                    class: "button button-primary beitrag-dialog__confirm",
+                    text: settings.confirmText
+                }).appendTo(actions);
+
+                function close(result) {
+                    modal.remove();
+                    resolve(result);
+                }
+
+                modal.on("click", function(event){
+                    if (event.target === modal[0]) {
+                        close(false);
+                    }
+                });
+                modal.find(".beitrag-dialog__close, .beitrag-dialog__cancel").on("click", function(){
+                    close(false);
+                });
+                modal.find(".beitrag-dialog__confirm").on("click", function(){
+                    close(true);
+                });
+
+                $("body").append(modal);
+                modal.find(".beitrag-dialog__confirm").trigger("focus");
+            });
+        }
+
         $(".ki-log-open").on("click", function(){
             const target = $(this).data("target");
             $("#" + target).prop("hidden", false);
@@ -376,9 +451,16 @@ function beitragseinreichung_ki_log_render_assets()
             $(this).closest(".ki-log-modal").prop("hidden", true);
         });
 
-        $(".ki-log-delete").on("click", function(){
+        $(".ki-log-delete").on("click", async function(){
             const index = $(this).data("index");
-            if (!confirm("Willst du diesen Eintrag wirklich löschen?")) return;
+            const confirmed = await showKiLogDialog({
+                title: "KI-Protokolleintrag löschen?",
+                message: "Der Eintrag wird dauerhaft aus dem lokalen KI-Protokoll entfernt.",
+                confirmText: "Löschen",
+                cancelText: "Abbrechen",
+                showCancel: true
+            });
+            if (!confirmed) return;
 
             $.post(ajaxurl, {
                 action: "beitragseinreichung_ki_log_loeschen",
@@ -389,7 +471,11 @@ function beitragseinreichung_ki_log_render_assets()
                     $("#ki-log-detail-" + index).remove();
                     $(this).closest("tr").remove();
                 } else {
-                    alert("Fehler beim Löschen.");
+                    showKiLogDialog({
+                        title: "Löschen fehlgeschlagen",
+                        message: "Der Protokolleintrag konnte nicht gelöscht werden.",
+                        confirmText: "Verstanden"
+                    });
                 }
             }.bind(this));
         });

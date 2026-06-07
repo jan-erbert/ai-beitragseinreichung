@@ -6,6 +6,7 @@ require_once plugin_dir_path(__FILE__) . 'core/capabilities.php';
 require_once plugin_dir_path(__FILE__) . 'ai/ai-models.php';
 require_once plugin_dir_path(__FILE__) . 'ai/ai-notifications.php';
 require_once plugin_dir_path(__FILE__) . 'core/post-status.php';
+require_once plugin_dir_path(__FILE__) . 'core/tags.php';
 require_once plugin_dir_path(__FILE__) . 'core/post-builder.php';
 require_once plugin_dir_path(__FILE__) . 'core/submission-preview.php';
 require_once plugin_dir_path(__FILE__) . 'core/post-handler.php';

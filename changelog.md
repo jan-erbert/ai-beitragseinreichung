@@ -1,5 +1,45 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.2.3 – 2026-06-07
+
+**Added:**
+
+- Schlagwort-Assistent für das Einreichungsformular:
+  - Schlagwörter werden als Kacheln erfasst.
+  - Doppelte Schlagwörter werden vermieden.
+  - Das aktuelle Jahr kann automatisch vorgeschlagen werden.
+- KI-Schlagwörter ergänzt:
+  - automatische Schlagwortvorschläge pro Beitrag
+  - optional abschaltbar zugunsten manueller Eingabe
+  - KI-Schlagwort-Pool mit häufig verwendeten WordPress-Schlagwörtern
+  - häufige Schlagwörter mit Nutzungszahl und Übernahme per Popup
+- Versionshinweis ergänzt, der pro Nutzer angezeigt und in den Einstellungen erneut geöffnet werden kann.
+- Kleine Lottie-Animation ergänzt, die bei aktivierter KI-Unterstützung im Einreichungsformular erscheint.
+- Link zum GitHub-Issue-Tracker im Einreichungsformular ergänzt.
+- Kleine Versionsanzeige im Formular und in den Einstellungen ergänzt.
+- Eigenes Hinweis-Modal für Validierung, Warnungen und Bestätigungen im Einreichungsformular, in den Einstellungen und im KI-Protokoll ergänzt.
+
+**Changed:**
+
+- Einstellungen für KI, Schlagwörter und Stilgruppen neu organisiert.
+- Stilgruppen werden nun in einem Popup bearbeitet; Speichern im Popup speichert direkt die kompletten Einstellungen.
+- Vorschau zeigt Schlagwörter als eigene Kacheln an.
+- Warnungen zu fehlendem Beitragsbild oder deaktivierter KI erscheinen bereits vor der Vorschau-Erstellung.
+- Versionshinweis-Popup nutzerfreundlicher formuliert und deutlich mit dem Wiki verlinkt.
+- Versionshinweis-Popup optisch überarbeitet und lokale Release-Lottie klein eingebunden.
+- KI-Prompts und sichtbare Modellhinweise verwenden echte deutsche Umlaute.
+- Direkte Einreichung ohne Vorschau weist deutlicher auf fehlende Prüfung und mögliche KI-Fehler hin.
+- Warnhinweise in Dialogen werden optisch stärker voneinander abgegrenzt.
+- KI-Fehlerhinweis erscheint beim finalen Speichern nur noch, wenn ohne vorherige Vorschau direkt eingereicht wird.
+- Vorschauen werden zusätzlich serverseitig kurzzeitig gespeichert und beim finalen Einreichen per Token übernommen.
+- OpenAI-Netzwerkfehler werden nicht mehr zusätzlich per `error_log()` protokolliert, sondern über die bestehende Admin-Benachrichtigung behandelt.
+
+**Notes:**
+
+- Grundlage für einen deutlich saubereren Einreichungsprozess geschaffen.
+- Die Änderungen betreffen vor allem Bedienbarkeit, Vorschau, KI-Schlagwörter und Pflege der Einstellungen.
+- Das Formular-JavaScript sollte als nächster Wartungsschritt aus dem Inline-Block in eine eigene Admin-Asset-Datei ausgelagert werden.
+
 ## Version 1.2.2 – 2026-06-07
 
 **Added:**
