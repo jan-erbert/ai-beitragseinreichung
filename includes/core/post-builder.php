@@ -118,7 +118,7 @@ function beitragseinreichung_haenge_galeriebilder_an($beitrag_id, $gallery_ids)
  */
 function beitragseinreichung_get_benachrichtigung_emails()
 {
-    $user_ids = get_option('beitragseinreichung_benachrichtigungs_user_ids', []);
+    $user_ids = array_map('intval', (array) get_option('beitragseinreichung_benachrichtigungs_user_ids', []));
     $emails = [];
 
     foreach ($user_ids as $uid) {

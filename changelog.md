@@ -1,5 +1,11 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.2.4 – 2026-06-07
+
+**Fixed:**
+
+- Benachrichtigungs-Empfänger werden beim Laden der Einstellungen typstabil gelesen, damit gespeicherte Checkbox-Auswahlen sichtbar erhalten bleiben.
+
 ## Version 1.2.3 – 2026-06-07
 
 **Added:**

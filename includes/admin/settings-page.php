@@ -87,7 +87,7 @@ function beitragseinreichung_einstellungen_anzeige()
     }
 
     $standard_ids = get_option('beitragseinreichung_standard_kategorien', []);
-    $user_ids = get_option('beitragseinreichung_benachrichtigungs_user_ids', []);
+    $user_ids = array_map('intval', (array) get_option('beitragseinreichung_benachrichtigungs_user_ids', []));
 
     $kategorien = get_categories(['hide_empty' => false]);
     $nutzer = get_users(['fields' => ['ID', 'display_name', 'user_email']]);
@@ -132,7 +132,7 @@ function beitragseinreichung_einstellungen_anzeige()
                                     ?>
                                     <label class="beitrag-user-option" data-search="<?php echo esc_attr($suchtext); ?>" style="display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; border-bottom: 1px solid #f0f0f1;">
                                         <input type="checkbox" name="empfaenger_user_ids[]" value="<?php echo esc_attr($nutzer_obj->ID); ?>"
-                                            <?php checked(in_array($nutzer_obj->ID, $user_ids, true)); ?>>
+                                            <?php checked(in_array((int) $nutzer_obj->ID, $user_ids, true)); ?>>
                                         <span>
                                             <strong><?php echo esc_html($nutzer_obj->display_name); ?></strong><br>
                                             <span class="description"><?php echo esc_html($nutzer_obj->user_email); ?></span>
