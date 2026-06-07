@@ -17,7 +17,7 @@ add_action('wp_enqueue_scripts', function () {
         return;
     }
 
-    $version = defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.1';
+    $version = defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.4';
 
     wp_register_style('beitragseinreichung-gallery-slider', false, [], $version);
     wp_enqueue_style('beitragseinreichung-gallery-slider');

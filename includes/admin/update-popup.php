@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
  */
 function beitragseinreichung_get_plugin_version()
 {
-    return defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.1';
+    return defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.4';
 }
 
 /**
