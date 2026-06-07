@@ -1,192 +1,226 @@
-# 🧠 AI Beitragseinreichung
+# AI Beitragseinreichung
 
-> Version: 1.2.0
-> Autor: Jan Erbert  
-> Letztes Update: 2026-06-06
+> Version: 1.2.3
+> Autor: Jan Erbert
+> Letztes Update: 2026-06-07
 > Lizenz: GPL2+
 
-Ein leistungsstarkes WordPress-Plugin, das es berechtigten Nutzern ermöglicht, im Backend Beiträge mit Schlagwörtern, Kategorien, Bildern und optionaler KI-Unterstützung einzureichen. Die Inhalte werden mit einem benutzerdefinierten Status gespeichert und können anschließend durch Admins oder Redakteure geprüft werden.
+**AI Beitragseinreichung** ist ein WordPress-Plugin, mit dem berechtigte Nutzer im Backend Beiträge vorbereiten und zur Prüfung einreichen können. Beiträge werden mit dem Status **in Verarbeitung** gespeichert und können anschließend von Admins oder Redakteuren kontrolliert, bearbeitet und veröffentlicht werden.
+
+Das Plugin unterstützt Titel, Inhalt, Kategorie, Schlagwörter, Beitragsbild, Zusatzbilder, Vorschau, Benachrichtigungen und optional eine KI-gestützte Überarbeitung über die OpenAI API.
 
 ---
 
-## ✨ Übersicht Funktionen
+## Funktionen
 
-- 📝 Beiträge einreichen im Adminbereich (inkl. Beitragsbild, Galerie, Tags & Kategorie)
-- 🧠 Optional: Automatische Textverbesserung mit GPT-4 (via OpenAI API)
-- 🔧 Stilvorgaben und Hinweise für die KI definierbar
-- 💬 Eigene Protokollierung aller KI-Optimierungen
-- 📬 E-Mail-Benachrichtigung an definierbare Admins + optional an den Autor
-- 🔐 Custom Post Status: „in Verarbeitung“ bis zur Freigabe
-- 📚 Gutenberg-kompatible Blockausgabe mit Markdown-zu-HTML-Konvertierung
-- 🧾 Optionaler Textauszug (manuell oder per KI generierbar)
-
----
-
-## 🔧 Features
-
-- 📝 **Backend-Formular zur Beitragseinreichung**  
-  Nutzer mit Berechtigung können neue Beiträge inklusive:
-
-  - Titel & Inhalt
-  - Kategorie & Schlagwörter
-  - Beitragsbild & Galerie
-  - KI-Optimierung (optional)
-  - Textauszug: manuell oder automatisch durch KI generiert
-    einreichen.
-
-- 📦 **Custom Post Status: in_verarbeitung**
-  Alle eingereichten Beiträge erhalten zunächst den Status in_verarbeitung. So können Admins sie prüfen, bevor sie veröffentlicht werden.
-
-- 🤖 **OpenAI GPT-4 Integration (optional)**  
-  Inhalte können automatisch stilistisch optimiert werden:
-  - Auswahl von Stilgruppen
-  - Freier Hinweistext für die KI
-  - Unterstützung für **Markdown**, Absätze, Listen, Hervorhebungen etc.
-  - Speicherung als saubere Gutenberg-Blöcke
-  - Klassischer WP Editor (folgt!)
-
-🛠️ **Eigene Rollen & Berechtigungen**  
-Es lassen sich folgende Rechte vergeben:
-
-- `beitragseinreichung_submit` – Beiträge einreichen, KI-Protokoll ansehen
-- `beitragseinreichung_settings` – Zugriff auf die Plugin-Einstellungen
-- `beitragseinreichung_admin` – Erweiterte Adminfunktionen (API-Key verwalten, Modellwahl, KI-Protokoll löschen etc.)
-
-  🔐 **Integration mit dem Plugin „Members“**  
-   Die Rechte des Plugins sind vollständig kompatibel mit dem beliebten WordPress-Plugin [Members](https://de.wordpress.org/plugins/members/). Dort erscheinen sie unter der separaten Gruppe **„AI Beitragseinreichung“**.
-
-  👉 **So funktioniert’s:**
-
-  1. Installiere und aktiviere das Plugin „Members“.
-  2. Gehe zu **Benutzer → Rollen** und bearbeite eine bestehende Rolle (z. B. „Autor“) oder erstelle eine neue.
-  3. Aktiviere gezielt die gewünschten Rechte wie `beitragseinreichung_submit`.
-  4. Weise die Rolle den entsprechenden Benutzern zu.
-
-  Damit kannst du exakt steuern, wer was im Einreichungsprozess darf – z. B. Autoren, die Beiträge nur einreichen können, oder Admins mit Zugriff auf alle Einstellungen und Logs.
-
-- 📬 **Benachrichtigungen per E-Mail**
-
-  - E-Mail an ausgewählte Admins bei neuen Beiträgen
-  - Optional auch Benachrichtigung an den Autor selbst
-
-- 📑 **KI-Protokoll**  
-  Übersicht aller durchgeführten Optimierungen inklusive:
-
-  - Vorher/Nachher-Vergleich von Titel & Inhalt
-  - Zeitstempel, Autor & Modell
-  - Genutzte Stilgruppe
-  - Admins können Einträge löschen
-
-- 🧾 **Textauszug (optional)**
-
-  - Der Beitrag kann einen Kurztext (Excerpt) enthalten
-  - Wahlweise manuell oder automatisch durch die KI generiert
-  - Ein-/Ausblendbar über die Plugin-Einstellungen
-  - Wird im Beitrag gespeichert und im KI-Protokoll dokumentiert
-
-- 📶 **OpenAI API-Statusanzeige**
-  - Verbindungstest beim Speichern der Einstellungen
-  - Manuell auslösbarer Test
-  - Statusanzeige mit Zeitstempel
+- Beiträge im WordPress-Backend einreichen
+- Beiträge vor dem Speichern als Vorschau prüfen
+- Titel, Inhalt, Kategorie, Schlagwörter, Beitragsbild und Zusatzbilder erfassen
+- Schlagwörter als Kacheln eingeben
+- doppelte Schlagwörter automatisch vermeiden
+- aktuelles Jahr optional als Schlagwort vorschlagen
+- Beiträge optional per KI stilistisch überarbeiten
+- Textauszug manuell oder automatisch per KI erstellen
+- KI-Schlagwörter optional automatisch vorschlagen lassen
+- Stilgruppen für unterschiedliche Beitragsarten pflegen
+- Zusatzbilder sauber als Einzelbild oder Galerie-Slider einfügen
+- Benachrichtigungsmails an ausgewählte Nutzer senden
+- KI-Optimierungen im Protokoll nachvollziehen
+- eigene WordPress-Capabilities für Rollen und Rechte nutzen
 
 ---
 
-## ✅ Voraussetzungen
+## Typischer Ablauf
 
-- WordPress 5.8 oder höher
-- PHP 7.4 oder höher
-- Nutzung von Gutenberg Editor für Beiträge (Standard WP Editor folgt)
-- Optional: OpenAI API-Key für GPT-Integration
+1. Nutzer öffnet im Backend **AI Beitragseinreichung**.
+2. Titel, Inhalt, Kategorie und Schlagwörter werden eingetragen.
+3. Optional werden Beitragsbild und Zusatzbilder ausgewählt.
+4. Optional wird **Texte automatisch verbessern** aktiviert.
+5. Der Beitrag wird über **Vorschau erstellen** geprüft.
+6. Bei Bedarf wird ein Änderungswunsch an die KI gesendet.
+7. Der Beitrag wird final eingereicht.
+8. Admins oder Redakteure prüfen den Beitrag im Status **in Verarbeitung**.
 
----
-
-## 🚀 Installation
-
-1. Plugin-Ordner `ai-beitragseinreichung` in `/wp-content/plugins/` kopieren.
-2. Plugin im Backend aktivieren.
-3. Optional: OpenAI API-Key in den Einstellungen hinterlegen.
-4. Benutzerrechte zuweisen.
-5. Stilgruppen & Standardkategorie definieren.
+Die Vorschau wird empfohlen, weil sie Titel, Text, Schlagwörter und Bilder vor dem Speichern sichtbar macht.
 
 ---
 
-## 🔐 Hinweis zum API-Key
+## KI-Funktionen
 
-Der OpenAI API-Key kann entweder direkt im Plugin-Backend hinterlegt oder alternativ sicher in der wp-config.php definiert werden.
-Dazu füge folgende Zeile hinzu:
+Die KI ist optional und wird nur genutzt, wenn sie in den Einstellungen aktiviert ist und der Nutzer sie im Formular auswählt.
+
+Unterstützt werden:
+
+- stilistische Überarbeitung von Titel und Beitragstext
+- automatische Erstellung eines Textauszugs
+- automatische Vorschläge für Schlagwörter
+- erneute Überarbeitung über einen konkreten Änderungswunsch in der Vorschau
+- zentrale Modellverwaltung über `includes/ai/ai-models.php`
+
+Die OpenAI-Aufrufe nutzen strukturierte Antworten, damit Titel, Inhalt, Textauszug und Schlagwörter zuverlässig getrennt verarbeitet werden können.
+
+Wichtig: Die KI verbessert Stil und Struktur, ersetzt aber keine fachliche Prüfung.
+
+---
+
+## Stilgruppen
+
+Stilgruppen geben der KI eine klare sprachliche Richtung. Beispiele:
+
+- Einladung
+- Rückblick
+- Vereinsmeldung
+- Ergebnisbericht
+- kurzer Hinweis
+
+Eine gute Stilgruppe beschreibt nicht nur „mach schöner“, sondern gibt konkret vor, wie der Beitrag klingen soll.
+
+Beispiel:
+
+```text
+Freundlich und einladend schreiben. Der Beitrag soll Lust auf Teilnahme machen. Datum, Uhrzeit, Ort und Anmeldung deutlich nennen. Titel kurz halten. Keine Inhalte erfinden.
+```
+
+---
+
+## Schlagwörter
+
+Schlagwörter werden im Formular als Kacheln gepflegt. Sie helfen dabei, Beiträge später besser zu verbinden und auffindbar zu machen.
+
+Das Plugin unterstützt:
+
+- manuelle Schlagwort-Kacheln
+- automatische Duplikatvermeidung
+- optionales Jahres-Schlagwort
+- KI-generierte Schlagwortvorschläge
+- häufig verwendete WordPress-Schlagwörter als Orientierung für die KI
+- eine bearbeitbare Liste bevorzugter Schreibweisen
+
+---
+
+## Bilder
+
+Das Plugin unterstützt:
+
+- ein Beitragsbild
+- zusätzliche Bilder
+- Galerie- bzw. Slider-Ausgabe bei mehreren Zusatzbildern
+
+Ein Beitragsbild wird empfohlen, weil es je nach Theme in Übersichten, Teasern oder Social-Vorschauen verwendet werden kann.
+
+---
+
+## Benachrichtigungen
+
+Bei neuen Einreichungen können ausgewählte Nutzer per E-Mail informiert werden. Optional kann auch der einreichende Autor eine Benachrichtigung erhalten.
+
+Die Mail enthält eine strukturierte Vorschau mit:
+
+- Titel
+- Autor
+- Kategorie
+- Schlagwörtern
+- Textauszug
+- Inhalt
+- Bildinformationen
+
+---
+
+## KI-Protokoll
+
+Das KI-Protokoll zeigt durchgeführte KI-Überarbeitungen mit:
+
+- Zeitpunkt
+- Nutzer
+- Modell
+- Stilgruppe
+- Originaltitel
+- optimiertem Titel
+- Originalinhalt
+- optimiertem Inhalt
+- Textauszug
+
+Details werden als Popup angezeigt. Auf kleinen Bildschirmen ist die Ansicht mobil nutzbar.
+
+---
+
+## Rechte und Rollen
+
+Das Plugin nutzt eigene Capabilities:
+
+| Capability | Bedeutung |
+|------------|-----------|
+| `beitragseinreichung_submit` | Formular öffnen und Beiträge einreichen |
+| `beitragseinreichung_settings` | Plugin-Einstellungen öffnen |
+| `beitragseinreichung_admin` | Erweiterte Adminfunktionen, z. B. Protokolle löschen |
+
+Die Rechte können z. B. mit dem WordPress-Plugin **Members** verwaltet werden.
+
+---
+
+## Voraussetzungen
+
+- WordPress 5.8 oder neuer
+- PHP 7.4 oder neuer
+- Gutenberg-kompatible Beitragsausgabe
+- Optional: OpenAI API-Key für KI-Funktionen
+
+---
+
+## Installation
+
+1. Plugin-Ordner nach `/wp-content/plugins/` kopieren oder als ZIP installieren.
+2. Plugin im WordPress-Backend aktivieren.
+3. Benutzerrechte vergeben.
+4. Standard-Kategorie und Benachrichtigungen einstellen.
+5. Optional OpenAI API-Key hinterlegen.
+6. Optional Stilgruppen und Schlagwortoptionen pflegen.
+
+---
+
+## OpenAI API-Key
+
+Der API-Key kann in den Plugin-Einstellungen gespeichert oder bevorzugt in der `wp-config.php` definiert werden:
 
 ```php
 define('OPENAI_API_KEY', 'dein-api-key-hier');
 ```
 
-👉 Wenn diese Konstante gesetzt ist, wird der API-Key im Backend nicht angezeigt oder verändert und das Plugin verwendet ausschließlich den hinterlegten Wert aus der Konfigurationsdatei.
+Wenn `OPENAI_API_KEY` gesetzt ist, verwendet das Plugin diesen Wert bevorzugt. Der Key wird dann nicht in den Einstellungen überschrieben.
 
 ---
 
-## 📌 Hinweise
+## Qualität und Prüfungen
 
-Die KI-Ausgabe ist auf stilistische Korrektur optimiert, keine Faktenprüfung!
+Für die lokale Entwicklung werden Composer-Tools genutzt:
 
-Der Gutenberg-kompatible HTML-Output unterstützt Überschriften, Absätze, Listen, Fett/Kursiv und Links.
-
-Die Nutzung der OpenAI API kann kostenpflichtig sein. Ein Soft-/Hardlimit kann im OpenAI-Dashboard definiert werden!
-
----
-
-ℹ️ Datenschutz-Hinweis
-Dieses Plugin bietet die Option, Inhalte automatisch durch künstliche Intelligenz (OpenAI, z. B. GPT-4) stilistisch verbessern zu lassen. Dabei werden vom Nutzer eingegebene Texte (Titel und Inhalt) an die OpenAI API (USA) übermittelt.
-
-Ob und wie diese Funktion genutzt wird, entscheidet der Beitragseinreicher individuell. Es erfolgt keine automatische Übertragung ohne Zustimmung.
-
-Bitte beachte:
-
-Die Nutzung der KI-Funktion kann unter Umständen datenschutzrechtliche Relevanz haben.
-
-Eine entsprechende Ergänzung in der Datenschutzerklärung deiner Webseite kann notwendig sein.
-
-Weitere Informationen zur Datenverarbeitung durch OpenAI: [OpenAI Privacy](https://openai.com/privacy)
-
-Hinweis: Für die rechtliche Bewertung und Gestaltung deiner Datenschutzerklärung bist du als Webseitenbetreiber selbst verantwortlich.
-
----
-
-### 🎨 Anpassbarer Stil
-
-Die KI-Optimierung erfolgt **nicht automatisch**, sondern orientiert sich an deinen Stilvorgaben:
-
-- ✍️ **Grundstil**: Eine globale Vorgabe wie z. B. _„freundlich, sachlich, sportlich“_ – wird bei jeder Optimierung berücksichtigt.
-- 🗂️ **Stilgruppen**: Für verschiedene Beitragstypen lassen sich eigene Stile definieren, z. B. für Berichte, Einladungen oder Artikel.
-
-🔧 Diese Vorgaben steuerst du direkt in den Plugin-Einstellungen und kannst sie jederzeit bearbeiten.
-
-💡 So lassen sich auch unterschiedliche Kommunikationsstile für verschiedene Zielgruppen einfach umsetzen.
-
----
-
-## 📘 Beispiele
-
-### 🖋️ Eingabe im Formular (ohne KI-Optimierung)
-
-```text
-Ergebnisse vom Lauf in Mainz
-
-Max Mustermann lief 12:00.
-Maximilia Musterfrau 14:30.
+```bash
+composer run lint
+composer run phpcs
 ```
 
-### 🧱 Ausgabe im Beitrag (automatisch umgewandelt zu Gutenberg-kompatiblen Blöcken)
+---
 
-```text
-<!-- wp:paragraph -->
-<p>🏃‍♂️ Erfolgreicher Stadtlauf in Mainz!</p>
-<!-- /wp:paragraph -->
+## Dokumentation
 
-<!-- wp:paragraph -->
-<p><strong>Max Mustermann</strong> – 12:00 min<br>
-<strong>Maximilia Musterfrau</strong> – 14:30 min</p>
-<!-- /wp:paragraph -->
+Weitere Informationen stehen im GitHub-Wiki:
 
-<!-- wp:paragraph -->
-<p>Herzlichen Glückwunsch an alle Teilnehmenden für ihre großartigen Leistungen! 🎉</p>
-<!-- /wp:paragraph -->
-```
+- Installation und Einrichtung
+- Beitrag einreichen
+- Gute Beiträge schreiben
+- KI-Funktionen
+- Einstellungen
+- Stilgruppen
+- Protokoll und Fehlersuche
+- Entwicklung und Roadmap
+
+Repository: [jan-erbert/ai-beitragseinreichung](https://github.com/jan-erbert/ai-beitragseinreichung)
+
+---
+
+## Hinweise
+
+- Inhalte werden nur an die OpenAI API gesendet, wenn die KI-Funktion aktiv genutzt wird.
+- KI-Ausgaben sollten vor der Veröffentlichung geprüft werden.
+- API-Nutzung kann Kosten verursachen.
+- Zugangsdaten und API-Keys gehören nicht ins Repository.
