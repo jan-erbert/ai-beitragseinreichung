@@ -77,29 +77,68 @@ function beitrag_formatiere_inline_markdown($text)
 }
 
 /**
- * Wandelt Textabschnitte in Gutenberg-Absatzbloecke um.
+ * Wandelt Markdown-aehnliche Textabschnitte in Gutenberg-Bloecke um.
  */
 function beitrag_wandle_zu_gutenberg_blocks($text)
 {
-    // Normalisiere Zeilenumbrueche
     $text = str_replace(["\r\n", "\r"], "\n", trim($text));
+    $lines = explode("\n", $text);
 
-    // Trenne bei zwei oder mehr Zeilenumbruechen (echte Absaetze)
-    $absaetze = preg_split("/\n{2,}/", $text);
-
+    $current_lines = [];
     $blocks = [];
 
-    foreach ($absaetze as $absatz) {
-        $absatz = trim($absatz);
-        if ($absatz === '') continue;
+    $flush_current_lines = function () use (&$current_lines, &$blocks) {
+        if (empty($current_lines)) {
+            return;
+        }
 
-        // Belasse harte Umbrueche im Absatz (z. B. Ergebniszeilen mit \n)
-        $html = wp_kses_post(nl2br(beitrag_formatiere_inline_markdown($absatz)));
+        $blocks[] = beitrag_render_block_from_lines($current_lines);
+        $current_lines = [];
+    };
 
-        $blocks[] = '<!-- wp:paragraph -->' . "\n" . '<p>' . $html . '</p>' . "\n" . '<!-- /wp:paragraph -->';
+    foreach ($lines as $line) {
+        $trimmed_line = trim($line);
+
+        if ($trimmed_line === '') {
+            $flush_current_lines();
+            continue;
+        }
+
+        if (preg_match('/^#{1,6}\s+.+/', $trimmed_line)) {
+            $flush_current_lines();
+            $blocks[] = beitrag_render_block_from_lines([$trimmed_line]);
+            continue;
+        }
+
+        $is_list_line = beitrag_ist_markdown_listenzeile($trimmed_line);
+        $current_is_list = !empty($current_lines) && beitrag_ist_markdown_listenzeile($current_lines[0]);
+
+        if (!empty($current_lines) && $is_list_line !== $current_is_list) {
+            $flush_current_lines();
+        }
+
+        $current_lines[] = $trimmed_line;
     }
 
+    $flush_current_lines();
+
     return implode("\n\n", $blocks);
+}
+
+/**
+ * Prueft, ob eine Zeile wie ein Markdown-Listenpunkt beginnt.
+ */
+function beitrag_ist_markdown_listenzeile($line)
+{
+    return (bool) preg_match('/^\s*(?:[-*•]|–|—)\s+.+/u', (string) $line);
+}
+
+/**
+ * Entfernt den Markdown-Listenmarker einer Zeile.
+ */
+function beitrag_entferne_markdown_listenmarker($line)
+{
+    return preg_replace('/^\s*(?:[-*•]|–|—)\s+/u', '', (string) $line);
 }
 
 /**
@@ -111,17 +150,17 @@ function beitrag_render_block_from_lines($lines)
     $text = trim($text);
 
     // Ueberschrift?
-    if (preg_match('/^#{1,6} (.+)/', $text, $matches)) {
-        $level = strlen(explode(' ', $text)[0]);
-        $content = trim($matches[1]);
-        return '<!-- wp:heading {"level":' . $level . '} -->' . "\n" . '<h' . $level . '>' . esc_html($content) . '</h' . $level . '>' . "\n" . '<!-- /wp:heading -->';
+    if (preg_match('/^(#{1,6})\s+(.+)/', $text, $matches)) {
+        $level = strlen($matches[1]);
+        $content = trim($matches[2]);
+        return '<!-- wp:heading {"level":' . $level . '} -->' . "\n" . '<h' . $level . '>' . wp_kses_post(beitrag_formatiere_inline_markdown($content)) . '</h' . $level . '>' . "\n" . '<!-- /wp:heading -->';
     }
 
     // Liste?
-    if (preg_match('/^[-*] (.+)/', $lines[0])) {
+    if (beitrag_ist_markdown_listenzeile($lines[0])) {
         $items = '';
         foreach ($lines as $line) {
-            $line = ltrim((string) $line, '-* ');
+            $line = beitrag_entferne_markdown_listenmarker($line);
             $items .= '<li>' . wp_kses_post(beitrag_formatiere_inline_markdown($line)) . '</li>';
         }
         return '<!-- wp:list --><ul>' . $items . '</ul><!-- /wp:list -->';
