@@ -7,6 +7,7 @@
 - Versionshinweis-Popup auf Smartphones scrollbar gemacht, damit der komplette Inhalt erreichbar bleibt und nicht abgeschnitten wird.
 - Mobile Darstellung des Versionshinweises kompakter gestaltet.
 - Ladehinweis bei der Vorschau-Erstellung korrigiert, damit dort nicht mehr von einer Beitragseinreichung gesprochen wird.
+- Hinweise für KI-Schlagwörter im Prompt priorisiert, damit konkrete Vorgaben wie Orts-Schlagwörter stärker berücksichtigt werden.
 
 ## Version 1.2.4 – 2026-06-07
 

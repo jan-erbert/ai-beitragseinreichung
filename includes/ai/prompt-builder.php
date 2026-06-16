@@ -83,12 +83,14 @@ function beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz = '', $e
         $prompt .= "\n\nBereits gesetzte Schlagwörter:\n" . $manual_tags_text;
     }
 
-    if ($standard_terms_text !== '') {
-        $prompt .= "\n\nBevorzugte vorhandene Schlagwörter bei passendem Inhalt:\n" . $standard_terms_text;
+    if ($tag_hinweise !== '') {
+        $prompt .= "\n\nPriorisierte Schlagwort-Regeln:\n";
+        $prompt .= "Diese Hinweise haben Vorrang vor allgemeinen Schlagwort-Empfehlungen und vor bevorzugten vorhandenen Schlagwörtern, solange sie nicht zu erfundenen Inhalten führen.\n";
+        $prompt .= $tag_hinweise;
     }
 
-    if ($tag_hinweise !== '') {
-        $prompt .= "\n\nHinweise für Schlagwörter:\n" . $tag_hinweise;
+    if ($standard_terms_text !== '') {
+        $prompt .= "\n\nBevorzugte vorhandene Schlagwörter bei passendem Inhalt:\n" . $standard_terms_text;
     }
 
     if (!empty($zusatz)) {
