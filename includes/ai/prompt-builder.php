@@ -60,7 +60,8 @@ function beitrag_ki_baue_beitrag_prompt($titel, $inhalt, $stil, $zusatz = '', $e
     - title: Emojis sind erlaubt, wenn sie zur Stilgruppe passen, aber maximal 1-2.
     - title: keine Fakten erfinden und keine Details überbetonen.
     - content: optimierter Beitragstext, keine Gutenberg-Kommentare, keine erfundenen Inhalte.
-    - content: einfache Markdown-Formatierung ist erlaubt, wenn sie sinnvoll ist.
+    - content: einfache Markdown-Formatierung ist erlaubt, wenn sie sinnvoll ist: Zwischenüberschriften, Listen, nummerierte Listen, Zitate, Trennlinien, Links, Fettdruck, Kursivschrift und einfache Tabellen.
+    - content: keine Markdown-Bilder, keine Codeblöcke, keine HTML-Tags.
     - Sprache: Verwende korrektes Deutsch mit Umlauten und ß. Schreibe z. B. „ä“, „ö“, „ü“ und „ß“ statt „ae“, „oe“, „ue“ oder „ss“, sofern die normale deutsche Schreibweise das vorsieht.
     $excerpt_regel
     $tag_regel

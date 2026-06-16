@@ -9,6 +9,8 @@
 - Ladehinweis bei der Vorschau-Erstellung korrigiert, damit dort nicht mehr von einer Beitragseinreichung gesprochen wird.
 - Hinweise für KI-Schlagwörter im Prompt priorisiert, damit konkrete Vorgaben wie Orts-Schlagwörter stärker berücksichtigt werden.
 - Markdown-Überschriften und Listen werden beim Speichern wieder korrekt in Gutenberg-Blöcke umgewandelt, statt als sichtbare `##`-Zeichen im Beitrag zu erscheinen.
+- Markdown-Unterstützung für nummerierte Listen, Zitate, horizontale Trenner, Inline-Code, Unterstrich-Fett/Kursiv und einfache Tabellen ergänzt.
+- KI-Prompt präzisiert, damit erlaubte Markdown-Formatierungen inklusive einfacher Tabellen klar benannt sind.
 
 ## Version 1.2.4 – 2026-06-07
 
