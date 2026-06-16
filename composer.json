@@ -18,6 +18,7 @@
   "scripts": {
     "lint": "php -l wp-form.php && find includes -name '*.php' -print0 | xargs -0 -n1 php -l",
     "phpcs": "phpcs",
-    "phpcbf": "phpcbf"
+    "phpcbf": "phpcbf",
+    "test:formatting": "php tests/markdown-formatting-smoke.php"
   }
 }
