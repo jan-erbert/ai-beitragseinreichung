@@ -1,6 +1,7 @@
 /vendor/
 /node_modules/
 /wiki
+/Stilgruppen/
 
 .phpunit.result.cache
 .phpcs-cache

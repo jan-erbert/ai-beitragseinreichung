@@ -12,6 +12,7 @@
 - Markdown-Unterstützung für nummerierte Listen, Zitate, horizontale Trenner, Inline-Code, Unterstrich-Fett/Kursiv und einfache Tabellen ergänzt.
 - KI-Prompt präzisiert, damit erlaubte Markdown-Formatierungen inklusive einfacher Tabellen klar benannt sind.
 - Entwicklungstest für Markdown-zu-Gutenberg-Konvertierung ergänzt.
+- Import und Export von Stilgruppen als versioniertes JSON vorbereitet.
 
 ## Version 1.2.4 – 2026-06-07
 

@@ -316,6 +316,8 @@ function beitragseinreichung_einstellungen_anzeige()
                             <option value="">-- Stilgruppe auswählen --</option>
                         </select>
                         <button type="button" class="button" id="neue-stilgruppe">+ Neue Stilgruppe</button>
+                        <button type="button" class="button" id="stilgruppe-importieren">Stilgruppe importieren</button>
+                        <input type="file" id="stilgruppe-import-datei" accept="application/json,.json" hidden>
 
                         <div class="beitrag-settings-style-modal" id="stilgruppe-editor" role="dialog" aria-modal="true" aria-labelledby="stilgruppe-editor-title" hidden>
                             <div class="beitrag-settings-style-modal__panel">
@@ -340,6 +342,7 @@ function beitragseinreichung_einstellungen_anzeige()
 
                                 <div class="beitrag-settings-style-modal__actions">
                                     <button type="button" class="button button-link-delete" id="stilgruppe-loeschen">Löschen</button>
+                                    <button type="button" class="button" id="stilgruppe-exportieren">Exportieren</button>
                                     <button type="button" class="button" id="stilgruppe-abbrechen">Abbrechen</button>
                                     <button type="button" class="button button-primary" id="stilgruppe-speichern">Speichern</button>
                                 </div>
@@ -363,6 +366,11 @@ function beitragseinreichung_einstellungen_anzeige()
                         const abbrechenBtn = document.getElementById('stilgruppe-abbrechen');
                         const schliessenBtn = editor.querySelector('.beitrag-settings-style-modal__close');
                         const neueBtn = document.getElementById('neue-stilgruppe');
+                        const exportBtn = document.getElementById('stilgruppe-exportieren');
+                        const importBtn = document.getElementById('stilgruppe-importieren');
+                        const importFile = document.getElementById('stilgruppe-import-datei');
+                        const styleGroupType = 'ai-beitragseinreichung-style-group';
+                        const styleGroupsType = 'ai-beitragseinreichung-style-groups';
 
                         function updateDropdown() {
                             auswahl.innerHTML = '<option value="">-- Stilgruppe auswählen --</option>';
@@ -389,13 +397,13 @@ function beitragseinreichung_einstellungen_anzeige()
                             form.submit();
                         }
 
-                        function showEditor(index = null) {
+                        function showEditor(index = null, values = null) {
                             editor.hidden = false;
                             if (index === null) {
                                 auswahl.value = '';
-                                inputLabel.value = '';
-                                inputStil.value = '';
-                                document.getElementById('stilgruppe-ziel').value = '';
+                                inputLabel.value = values && values.label ? values.label : '';
+                                inputStil.value = values && values.stil ? values.stil : '';
+                                document.getElementById('stilgruppe-ziel').value = values && values.ziel ? values.ziel : '';
                                 editor.dataset.index = '';
                             } else {
                                 const gruppe = stilgruppen[index];
@@ -513,6 +521,178 @@ function beitragseinreichung_einstellungen_anzeige()
                             syncHiddenInputs();
                             closeEditor();
                             submitSettingsForm();
+                        });
+
+                        function normalizeStyleGroup(value) {
+                            if (!value || typeof value !== 'object') {
+                                return null;
+                            }
+
+                            const label = typeof value.label === 'string' ? value.label.trim() : '';
+                            const stil = typeof value.stil === 'string' ? value.stil.trim() : '';
+                            const ziel = typeof value.ziel === 'string' ? value.ziel.trim() : '';
+
+                            if (!label || !stil) {
+                                return null;
+                            }
+
+                            return {
+                                label,
+                                stil,
+                                ziel
+                            };
+                        }
+
+                        function normalizeImportedStyleGroups(payload) {
+                            if (!payload || typeof payload !== 'object') {
+                                return [];
+                            }
+
+                            if (payload.type === styleGroupType && Number(payload.version) === 1) {
+                                const group = normalizeStyleGroup(payload.data);
+                                return group ? [group] : [];
+                            }
+
+                            if (payload.type === styleGroupsType && Number(payload.version) === 1 && Array.isArray(payload.data)) {
+                                return payload.data.map(normalizeStyleGroup).filter(Boolean);
+                            }
+
+                            return [];
+                        }
+
+                        function styleGroupLabelExists(label, additionalLabels = []) {
+                            const normalizedLabel = label.toLocaleLowerCase();
+                            return stilgruppen.some(gruppe => String(gruppe.label || '').trim().toLocaleLowerCase() === normalizedLabel) ||
+                                additionalLabels.some(existingLabel => String(existingLabel || '').trim().toLocaleLowerCase() === normalizedLabel);
+                        }
+
+                        function makeUniqueStyleGroupLabel(label, additionalLabels = []) {
+                            let candidate = label;
+                            let counter = 2;
+
+                            if (!styleGroupLabelExists(candidate, additionalLabels)) {
+                                return candidate;
+                            }
+
+                            candidate = label + ' (Import)';
+                            while (styleGroupLabelExists(candidate, additionalLabels)) {
+                                candidate = label + ' (Import ' + counter + ')';
+                                counter += 1;
+                            }
+
+                            return candidate;
+                        }
+
+                        function makeExportFilename(label) {
+                            const cleaned = String(label || 'stilgruppe')
+                                .normalize('NFKD')
+                                .replace(/[\u0300-\u036f]/g, '')
+                                .replace(/[^a-zA-Z0-9]+/g, '-')
+                                .replace(/^-+|-+$/g, '')
+                                .toLocaleLowerCase();
+
+                            return (cleaned || 'stilgruppe') + '.stylegroup.json';
+                        }
+
+                        function getCurrentEditorStyleGroup() {
+                            return normalizeStyleGroup({
+                                label: inputLabel.value,
+                                stil: inputStil.value,
+                                ziel: document.getElementById('stilgruppe-ziel').value
+                            });
+                        }
+
+                        exportBtn.addEventListener('click', async () => {
+                            const group = getCurrentEditorStyleGroup();
+                            if (!group) {
+                                await showSettingsDialog({
+                                    title: 'Export nicht möglich',
+                                    message: 'Bitte fülle Bezeichnung und Stilbeschreibung aus, bevor du die Stilgruppe exportierst.',
+                                    confirmText: 'Verstanden'
+                                });
+                                return;
+                            }
+
+                            const payload = {
+                                type: styleGroupType,
+                                version: 1,
+                                data: group
+                            };
+                            const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                                type: 'application/json'
+                            });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = makeExportFilename(group.label);
+                            document.body.appendChild(link);
+                            link.click();
+                            link.remove();
+                            URL.revokeObjectURL(url);
+                        });
+
+                        importBtn.addEventListener('click', () => {
+                            importFile.value = '';
+                            importFile.click();
+                        });
+
+                        importFile.addEventListener('change', async () => {
+                            const file = importFile.files && importFile.files[0] ? importFile.files[0] : null;
+                            if (!file) {
+                                return;
+                            }
+
+                            try {
+                                const payload = JSON.parse(await file.text());
+                                const importedGroups = normalizeImportedStyleGroups(payload);
+                                if (!importedGroups.length) {
+                                    await showSettingsDialog({
+                                        title: 'Import nicht möglich',
+                                        message: 'Die Datei enthält keine gültige Stilgruppe im erwarteten JSON-Format.',
+                                        confirmText: 'Verstanden'
+                                    });
+                                    return;
+                                }
+
+                                const importedLabels = [];
+                                importedGroups.forEach(group => {
+                                    group.label = makeUniqueStyleGroupLabel(group.label, importedLabels);
+                                    importedLabels.push(group.label);
+                                });
+
+                                if (importedGroups.length === 1) {
+                                    showEditor(null, importedGroups[0]);
+                                    await showSettingsDialog({
+                                        title: 'Stilgruppe importiert',
+                                        message: 'Die importierte Stilgruppe wurde zur Prüfung geöffnet. Speichern übernimmt sie in die Einstellungen.',
+                                        confirmText: 'Verstanden'
+                                    });
+                                    return;
+                                }
+
+                                const confirmed = await showSettingsDialog({
+                                    title: importedGroups.length + ' Stilgruppen importieren?',
+                                    message: 'Mehrere Stilgruppen werden ergänzt und anschließend direkt in den Einstellungen gespeichert. Gleichnamige Gruppen erhalten automatisch den Zusatz „(Import)”.',
+                                    confirmText: 'Importieren und speichern',
+                                    cancelText: 'Abbrechen',
+                                    showCancel: true
+                                });
+
+                                if (!confirmed) {
+                                    return;
+                                }
+
+                                importedGroups.forEach(group => stilgruppen.push(group));
+                                updateDropdown();
+                                syncHiddenInputs();
+                                submitSettingsForm();
+                            } catch (error) {
+                                await showSettingsDialog({
+                                    title: 'Import nicht möglich',
+                                    message: 'Die Datei konnte nicht als gültiges JSON gelesen werden.',
+                                    confirmText: 'Verstanden'
+                                });
+                            }
                         });
 
                         loeschenBtn.addEventListener('click', async () => {
