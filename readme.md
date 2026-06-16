@@ -81,6 +81,8 @@ Beispiel:
 Freundlich und einladend schreiben. Der Beitrag soll Lust auf Teilnahme machen. Datum, Uhrzeit, Ort und Anmeldung deutlich nennen. Titel kurz halten. Keine Inhalte erfinden.
 ```
 
+Stilgruppen können in den Einstellungen als versionierte JSON-Datei exportiert und wieder importiert werden. Einzelne Importe werden zuerst im Bearbeiten-Popup geöffnet, damit sie geprüft und erst danach gespeichert werden. Mehrere Stilgruppen können über eine gemeinsame JSON-Datei importiert werden.
+
 ---
 
 ## Schlagwörter
