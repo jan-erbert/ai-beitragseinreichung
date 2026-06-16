@@ -214,7 +214,7 @@ function beitragseinreichung_formular_anzeige()
             <div id="submit-loader" style="display:none;">
                 <div class="submit-loader-inner">
                     <div class="submit-loader-bar"></div>
-                    <p>Dein Beitrag wird verarbeitet …</p>
+                    <p id="submit-loader-text">Dein Beitrag wird verarbeitet …</p>
                 </div>
             </div>
             <div id="lottie-loader" style="display: none;">
@@ -226,7 +226,7 @@ function beitragseinreichung_formular_anzeige()
                     loop
                     autoplay>
                 </lottie-player>
-                <p style="margin-top: 1em; font-size: 1.2em;">⏳ Dein Beitrag wird eingereicht...</p>
+                <p id="lottie-loader-text" style="margin-top: 1em; font-size: 1.2em;">⏳ Dein Beitrag wird eingereicht...</p>
             </div>
         </form>
         <p style="margin-top: 40px; font-size: 0.95em;">

@@ -380,9 +380,15 @@ add_action('admin_footer', function () {
                 });
             }
 
-            function setPreviewLoading(isLoading, useKiLoader) {
+            function setLoadingText(message) {
+                $('#submit-loader-text').text(message);
+                $('#lottie-loader-text').text('⏳ ' + message);
+            }
+
+            function setPreviewLoading(isLoading, useKiLoader, message) {
                 $('#beitrag-preview-button, #beitrag-preview-revise-button').prop('disabled', isLoading);
                 if (isLoading) {
+                    setLoadingText(message || 'Deine Vorschau wird erstellt …');
                     if (useKiLoader) {
                         $('#lottie-loader').fadeIn();
                         $('#submit-loader').hide();
@@ -506,7 +512,11 @@ add_action('admin_footer', function () {
                     formData.set('beitrag_preview_change_request', '');
                 }
 
-                setPreviewLoading(true, $('#beitrag_ki_individuell').is(':checked'));
+                setPreviewLoading(
+                    true,
+                    $('#beitrag_ki_individuell').is(':checked'),
+                    includeChangeRequest ? 'Deine Vorschau wird überarbeitet …' : 'Deine Vorschau wird erstellt …'
+                );
 
                 window.fetch(window.ajaxurl, {
                     method: 'POST',
@@ -677,12 +687,14 @@ add_action('admin_footer', function () {
                 }
 
                 if ($('#beitrag_ki_individuell').is(':checked')) {
+                    setLoadingText('Dein Beitrag wird eingereicht ...');
                     $('#lottie-loader').fadeIn();
                     $('#submit-loader').hide();
                     $('html, body').animate({
                         scrollTop: $('#lottie-loader').offset().top - 40
                     }, 500);
                 } else {
+                    setLoadingText('Dein Beitrag wird eingereicht ...');
                     $('#submit-loader').fadeIn();
                     $('#lottie-loader').hide();
                     $('html, body').animate({
