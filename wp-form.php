@@ -4,14 +4,14 @@
  * Plugin Name: 🧠 AI Beitragseinreichung
  * Plugin URI: https://jan-erbert.de
  * Description: Ermöglicht es berechtigten Nutzern, im Backend Beiträge mit Bild und Schlagwörtern einzureichen. Beiträge werden mit Status "In Verarbeitung" gespeichert und können durch AI verbessert werden.
- * Version: 1.2.4
+ * Version: 1.2.5
  * Author: Jan Erbert
  * License: GPL2+
  */
 
 defined('ABSPATH') || exit;
 
-define('BEITRAGSEINREICHUNG_VERSION', '1.2.4');
+define('BEITRAGSEINREICHUNG_VERSION', '1.2.5');
 
 require_once plugin_dir_path(__FILE__) . 'includes/bootstrap.php';
 

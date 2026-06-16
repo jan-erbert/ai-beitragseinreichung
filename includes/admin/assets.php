@@ -45,7 +45,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
     }
 
     $style_path = plugin_dir_path(dirname(__DIR__)) . 'css/style.css';
-    $style_version = defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.4';
+    $style_version = defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.5';
     if (file_exists($style_path)) {
         $style_version .= '-' . filemtime($style_path);
     }

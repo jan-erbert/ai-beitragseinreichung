@@ -1,5 +1,12 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.2.5 – 2026-06-16
+
+**Fixed:**
+
+- Versionshinweis-Popup auf Smartphones scrollbar gemacht, damit der komplette Inhalt erreichbar bleibt und nicht abgeschnitten wird.
+- Mobile Darstellung des Versionshinweises kompakter gestaltet.
+
 ## Version 1.2.4 – 2026-06-07
 
 **Fixed:**

@@ -7,7 +7,7 @@ defined('ABSPATH') || exit;
  */
 function beitragseinreichung_get_plugin_version()
 {
-    return defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.4';
+    return defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.5';
 }
 
 /**
@@ -169,8 +169,10 @@ add_action('admin_footer', function () {
             display: flex;
             inset: 0;
             justify-content: center;
+            overflow-y: auto;
             padding: 24px;
             position: fixed;
+            -webkit-overflow-scrolling: touch;
             z-index: 100000;
         }
 
@@ -182,10 +184,20 @@ add_action('admin_footer', function () {
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+            max-height: calc(100vh - 48px);
             max-width: 680px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
             padding: 28px;
             position: relative;
+            -webkit-overflow-scrolling: touch;
             width: min(680px, 100%);
+        }
+
+        @supports (height: 100dvh) {
+            .beitrag-update-popup__panel {
+                max-height: calc(100dvh - 48px);
+            }
         }
 
         .beitrag-update-popup__close {
@@ -292,21 +304,48 @@ add_action('admin_footer', function () {
         @media (max-width: 600px) {
             .beitrag-update-popup {
                 align-items: flex-start;
-                padding: 16px;
+                padding: 12px;
             }
 
             .beitrag-update-popup__panel {
-                padding: 22px;
+                max-height: calc(100vh - 24px);
+                padding: 18px;
+            }
+
+            @supports (height: 100dvh) {
+                .beitrag-update-popup__panel {
+                    max-height: calc(100dvh - 24px);
+                }
             }
 
             .beitrag-update-popup__intro {
                 grid-template-columns: 1fr;
-                margin-right: 36px;
+                gap: 10px;
+                margin: 0 34px 12px 0;
             }
 
             .beitrag-update-popup__visual {
-                height: 62px;
-                width: 62px;
+                height: 56px;
+                width: 56px;
+            }
+
+            .beitrag-update-popup h2 {
+                font-size: 20px;
+            }
+
+            .beitrag-update-popup p {
+                font-size: 14px;
+                line-height: 1.45;
+                margin-bottom: 12px;
+            }
+
+            .beitrag-update-popup__highlights {
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+
+            .beitrag-update-popup__highlights > div {
+                padding: 10px;
             }
 
             .beitrag-update-popup__actions {
