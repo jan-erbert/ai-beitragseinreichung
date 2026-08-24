@@ -1,10 +1,10 @@
 {
   "php.validate.enable": false,
   "php.validate.executablePath": "/usr/bin/php",
-  "phpcs.executablePath": "/home/jan/Projekte/GitHub/ai-beitragseinreichung/vendor/bin/phpcs",
-  "phpcs.standard": "/home/jan/Projekte/GitHub/ai-beitragseinreichung/phpcs.xml.dist",
+  "phpcs.executablePath": "/home/jan/Projekte/Code Projekte/ai-beitragseinreichung/vendor/bin/phpcs",
+  "phpcs.standard": "/home/jan/Projekte/Code Projekte/ai-beitragseinreichung/phpcs.xml.dist",
   "intelephense.diagnostics.undefinedFunctions": false,
   "intelephense.environment.includePaths": [
-    "/home/jan/Projekte/GitHub/ai-beitragseinreichung/vendor/php-stubs/wordpress-stubs"
+    "/home/jan/Projekte/Code Projekte/ai-beitragseinreichung/vendor/php-stubs/wordpress-stubs"
   ]
 }

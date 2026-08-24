@@ -119,9 +119,10 @@ Bei jeder Aenderung an Formularen, AJAX-Endpunkten oder gespeicherten Optionen p
 - Deploy-/Sync-Einstellungen duerfen keine produktiven Daten loeschen oder ueberschreiben, ohne dass dies ausdruecklich bestaetigt wurde.
 - Nach relevanten Codeaenderungen den Serverstand mitdenken und bei Bedarf synchronisieren.
 - Sync-Richtung ist ausschliesslich lokal nach remote. Keine Remote-Dateien als Quelle fuer lokalen Code verwenden, ausser der Nutzer fordert dies ausdruecklich.
-- Beim FTP-Sync immer lokale Ausschluesse beachten: `.git`, `.vscode`, `.agents`, `.codex`, `vendor`, `node_modules`, `wiki`, Logs, ZIPs und lokale Cache-Dateien.
+- Remote-Pfad fuer dieses Plugin: `/www/htdocs/w019c007/lauffreunde-naheland.jan-erbert.de/wp-content/plugins/wp-ai-form`.
+- Beim SFTP-/Server-Sync immer lokale Ausschluesse beachten: `.git`, `.vscode`, `.agents`, `.codex`, `vendor`, `node_modules`, `wiki`, Logs, ZIPs und lokale Cache-Dateien.
 - Secrets aus `.vscode/sftp.json` niemals ausgeben oder committen.
-- Nach einem manuellen FTP-Sync eine kurze Kontrolle melden: Anzahl Uploads, Loeschungen, fehlende Dateien und extra Remote-Dateien.
+- Nach einem manuellen SFTP-/Server-Sync eine kurze Kontrolle melden: Anzahl Uploads, Loeschungen, fehlende Dateien und extra Remote-Dateien.
 
 ---
 
