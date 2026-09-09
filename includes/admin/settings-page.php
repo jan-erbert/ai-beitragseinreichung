@@ -8,6 +8,23 @@ defined('ABSPATH') || exit;
 function beitragseinreichung_einstellungen_anzeige()
 {
     $ist_admin = current_user_can('beitragseinreichung_admin');
+    $settings_notice = '';
+    $show_ai_disable_prompt = false;
+
+    if (isset($_POST['beitragseinreichung_disable_ai_after_test'])) {
+        $disable_nonce = isset($_POST['beitrag_disable_ai_nonce']) ? sanitize_text_field(wp_unslash($_POST['beitrag_disable_ai_nonce'])) : '';
+        if (!$disable_nonce || !wp_verify_nonce($disable_nonce, 'beitrag_disable_ai_after_test')) {
+            wp_die(esc_html__('Die Sicherheitsprüfung ist fehlgeschlagen.', 'ai-beitragseinreichung'));
+        }
+
+        if (!$ist_admin) {
+            wp_die(esc_html__('Du hast keine Berechtigung, die KI zu deaktivieren.', 'ai-beitragseinreichung'));
+        }
+
+        update_option('beitragseinreichung_ki_aktiv', 0);
+        $settings_notice = 'Die KI-Unterstützung wurde deaktiviert.';
+    }
+
     $nonce = isset($_POST['beitrag_einstellungen_nonce']) ? sanitize_text_field(wp_unslash($_POST['beitrag_einstellungen_nonce'])) : '';
     if ($nonce && wp_verify_nonce($nonce, 'speichern_beitrag_einstellungen')) {
         if (!current_user_can('beitragseinreichung_settings')) {
@@ -44,8 +61,11 @@ function beitragseinreichung_einstellungen_anzeige()
             $empfaenger = isset($_POST['empfaenger_user_ids']) ? array_map('intval', (array) $_POST['empfaenger_user_ids']) : [];
             update_option('beitragseinreichung_benachrichtigungs_user_ids', $empfaenger);
 
-            $ki_aktiv = isset($_POST['beitragseinreichung_ki_aktiv']) ? (int) $_POST['beitragseinreichung_ki_aktiv'] : 0;
-            update_option('beitragseinreichung_ki_aktiv', $ki_aktiv);
+            $ki_aktiv = (int) get_option('beitragseinreichung_ki_aktiv', 0);
+            if (isset($_POST['beitragseinreichung_ki_aktiv'])) {
+                $ki_aktiv = (int) $_POST['beitragseinreichung_ki_aktiv'];
+                update_option('beitragseinreichung_ki_aktiv', $ki_aktiv);
+            }
 
             if (isset($_POST['beitragseinreichung_ki_modell'])) {
                 $ki_modell = beitrag_normalize_ai_model(sanitize_text_field(wp_unslash($_POST['beitragseinreichung_ki_modell'])));
@@ -55,6 +75,11 @@ function beitragseinreichung_einstellungen_anzeige()
             if (isset($_POST['beitragseinreichung_excerpt_aktiv'])) {
                 update_option('beitragseinreichung_excerpt_aktiv', (int) $_POST['beitragseinreichung_excerpt_aktiv']);
             }
+
+            $log_limit = isset($_POST['beitragseinreichung_ki_log_limit']) ? (int) $_POST['beitragseinreichung_ki_log_limit'] : 100;
+            $log_limit = max(1, min(500, $log_limit));
+            update_option('beitragseinreichung_ki_log_limit', $log_limit);
+            beitragseinreichung_trim_ai_logs($log_limit);
 
             update_option('beitragseinreichung_tags_jahr_aktiv', isset($_POST['beitragseinreichung_tags_jahr_aktiv']) ? 1 : 0);
             update_option('beitragseinreichung_ki_tags_aktiv', $ki_aktiv && isset($_POST['beitragseinreichung_ki_tags_aktiv']) ? 1 : 0);
@@ -83,7 +108,10 @@ function beitragseinreichung_einstellungen_anzeige()
 
         echo '<div class="updated"><p>Einstellungen gespeichert.</p></div>';
         // Verbindung testen nach dem Speichern
-        beitragseinreichung_test_openai_verbindung();
+        $api_test_status = beitragseinreichung_test_openai_verbindung();
+        $show_ai_disable_prompt = $ist_admin
+            && (int) get_option('beitragseinreichung_ki_aktiv', 0) === 1
+            && ($api_test_status['status'] ?? '') !== 'erfolgreich';
     }
 
     $standard_ids = get_option('beitragseinreichung_standard_kategorien', []);
@@ -97,6 +125,9 @@ function beitragseinreichung_einstellungen_anzeige()
 ?>
     <div class="wrap">
         <h1>Beitragseinreichung – Einstellungen</h1>
+        <?php if ($settings_notice !== ''): ?>
+            <div class="notice notice-success is-dismissible"><p><?php echo esc_html($settings_notice); ?></p></div>
+        <?php endif; ?>
         <form method="post">
             <?php wp_nonce_field('speichern_beitrag_einstellungen', 'beitrag_einstellungen_nonce'); ?>
 
@@ -221,13 +252,13 @@ function beitragseinreichung_einstellungen_anzeige()
                     <th scope="row"><label for="beitragseinreichung_ki_aktiv">KI aktivieren</label></th>
                     <td>
                         <?php
-                        $status = get_option('beitragseinreichung_api_status');
-                        $key_valid = $status && $status['status'] === 'erfolgreich';
+                        $has_api_key = (defined('OPENAI_API_KEY') && trim((string) OPENAI_API_KEY) !== '')
+                            || trim((string) get_option('beitragseinreichung_api_key', '')) !== '';
                         ?>
                         <select name="beitragseinreichung_ki_aktiv"
                             id="beitragseinreichung_ki_aktiv"
-                            <?php echo ($ist_admin && $key_valid) ? '' : 'disabled'; ?>
-                            title="<?php echo esc_attr($key_valid ? 'Nur Admins dürfen diese Einstellung ändern.' : 'Ein gültiger API-Key ist erforderlich.'); ?>">
+                            <?php echo ($ist_admin && $has_api_key) ? '' : 'disabled'; ?>
+                            title="<?php echo esc_attr($has_api_key ? 'Nur Admins dürfen diese Einstellung ändern.' : 'Ein API-Key ist erforderlich.'); ?>">
                             <option value="0" <?php selected(get_option('beitragseinreichung_ki_aktiv'), 0); ?>>Deaktiviert</option>
                             <option value="1" <?php selected(get_option('beitragseinreichung_ki_aktiv'), 1); ?>>Aktiviert</option>
                         </select>
@@ -786,6 +817,22 @@ function beitragseinreichung_einstellungen_anzeige()
                         <p><strong>Modell:</strong> <span id="ki-hinweis-modell"></span></p>
                     </td>
                 </tr>
+                <?php if ($ist_admin): ?>
+                    <tr>
+                        <th scope="row"><label for="beitragseinreichung_ki_log_limit">KI-Protokoll aufbewahren</label></th>
+                        <td>
+                            <input type="number"
+                                name="beitragseinreichung_ki_log_limit"
+                                id="beitragseinreichung_ki_log_limit"
+                                min="1"
+                                max="500"
+                                value="<?php echo esc_attr((string) beitragseinreichung_get_ai_log_limit()); ?>"
+                                class="small-text">
+                            <span>Einträge</span>
+                            <p class="description">Standard: 100. Beim Speichern werden nur die neuesten Einträge bis zu dieser Obergrenze behalten.</p>
+                        </td>
+                    </tr>
+                <?php endif; ?>
                 <tr>
                     <th scope="row"><label for="beitragseinreichung_api_key">OpenAI API-Key</label></th>
                     <td>
@@ -847,6 +894,21 @@ function beitragseinreichung_einstellungen_anzeige()
         <p class="beitrag-plugin-version">
             AI Beitragseinreichung <?php echo esc_html('v' . BEITRAGSEINREICHUNG_VERSION); ?>
         </p>
+        <?php if ($ist_admin): ?>
+            <div class="beitrag-dialog" id="beitrag-ai-disable-dialog" role="dialog" aria-modal="true" aria-labelledby="beitrag-ai-disable-title" <?php echo $show_ai_disable_prompt ? '' : 'hidden'; ?>>
+                <form method="post" class="beitrag-dialog__panel">
+                    <?php wp_nonce_field('beitrag_disable_ai_after_test', 'beitrag_disable_ai_nonce'); ?>
+                    <input type="hidden" name="beitragseinreichung_disable_ai_after_test" value="1">
+                    <button type="button" class="beitrag-dialog__close" aria-label="Hinweis schließen">×</button>
+                    <h2 id="beitrag-ai-disable-title">KI-Verbindung fehlgeschlagen</h2>
+                    <p class="beitrag-dialog__message">Die Einstellungen wurden gespeichert, aber der anschließende Verbindungstest war nicht erfolgreich. Soll die KI-Unterstützung vorsichtshalber deaktiviert werden?</p>
+                    <div class="beitrag-dialog__actions">
+                        <button type="button" class="button button-secondary beitrag-ai-disable-cancel">KI aktiviert lassen</button>
+                        <button type="submit" class="button button-primary">KI deaktivieren</button>
+                    </div>
+                </form>
+            </div>
+        <?php endif; ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const modellSelect = document.getElementById('beitragseinreichung_ki_modell');
@@ -854,6 +916,40 @@ function beitragseinreichung_einstellungen_anzeige()
                 const kiSelect = document.getElementById('beitragseinreichung_ki_aktiv');
                 const kiTagsOptions = document.getElementById('beitrag-ki-tags-options');
                 const kiTagsNotice = document.getElementById('beitrag-ki-tags-disabled-notice');
+                const aiDisableDialog = document.getElementById('beitrag-ai-disable-dialog');
+
+                function closeAiDisableDialog() {
+                    if (aiDisableDialog) {
+                        aiDisableDialog.hidden = true;
+                    }
+                }
+
+                function openAiDisableDialog() {
+                    if (aiDisableDialog) {
+                        aiDisableDialog.hidden = false;
+                        const cancelButton = aiDisableDialog.querySelector('.beitrag-ai-disable-cancel');
+                        if (cancelButton) {
+                            cancelButton.focus();
+                        }
+                    }
+                }
+
+                if (aiDisableDialog) {
+                    aiDisableDialog.querySelectorAll('.beitrag-dialog__close, .beitrag-ai-disable-cancel').forEach(button => {
+                        button.addEventListener('click', closeAiDisableDialog);
+                    });
+                    aiDisableDialog.addEventListener('click', function(event) {
+                        if (event.target === aiDisableDialog) {
+                            closeAiDisableDialog();
+                        }
+                    });
+                    document.addEventListener('keydown', function(event) {
+                        if (event.key === 'Escape' && !aiDisableDialog.hidden) {
+                            closeAiDisableDialog();
+                        }
+                    });
+                    window.beitragOpenAiDisableDialog = openAiDisableDialog;
+                }
 
                 function updateHinweis() {
                     const option = modellSelect.options[modellSelect.selectedIndex];
@@ -1052,6 +1148,9 @@ function beitragseinreichung_einstellungen_anzeige()
                         statusDiv.empty().append($('<span>').css('color', color).text(text));
                     } else {
                         statusDiv.empty().append($('<span>').css('color', color).text(text));
+                        if ($('#beitragseinreichung_ki_aktiv').val() === '1' && typeof window.beitragOpenAiDisableDialog === 'function') {
+                            window.beitragOpenAiDisableDialog();
+                        }
                     }
                 });
             });

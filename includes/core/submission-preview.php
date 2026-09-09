@@ -32,6 +32,39 @@ function beitragseinreichung_get_submission_input(array $source)
 }
 
 /**
+ * Prueft Pflichtangaben fuer Vorschau und direkte Einreichung.
+ *
+ * @param array<string, mixed> $input Bereinigte Formulardaten.
+ * @return string[]
+ */
+function beitragseinreichung_validate_submission_input(array $input)
+{
+    $errors = [];
+
+    if (trim((string) ($input['title'] ?? '')) === '') {
+        $errors[] = 'Bitte gib einen Titel ein.';
+    }
+
+    if (trim((string) ($input['content'] ?? '')) === '') {
+        $errors[] = 'Bitte gib einen Beitragstext ein.';
+    }
+
+    if (empty($input['ki_tags_active']) && trim((string) ($input['tags'] ?? '')) === '') {
+        $errors[] = 'Bitte gib mindestens ein Schlagwort ein.';
+    }
+
+    if ((int) ($input['category_id'] ?? 0) <= 0) {
+        $errors[] = 'Bitte wähle eine Kategorie aus.';
+    }
+
+    if (!empty($input['ki_active']) && trim((string) ($input['style_group'] ?? '')) === '') {
+        $errors[] = 'Bitte wähle einen Stil aus der Liste.';
+    }
+
+    return $errors;
+}
+
+/**
  * Erzeugt die finalen Beitragsdaten fuer eine Vorschau.
  *
  * @param array<string, mixed> $input Bereinigte Formulardaten.
@@ -213,12 +246,9 @@ add_action('wp_ajax_beitragseinreichung_preview_beitrag', function () {
 
     $input = beitragseinreichung_get_submission_input($_POST);
 
-    if ($input['title'] === '' || $input['content'] === '' || (empty($input['ki_tags_active']) && $input['tags'] === '')) {
-        wp_send_json_error(['message' => 'Bitte fülle Titel, Inhalt und Schlagwörter aus.']);
-    }
-
-    if (!empty($input['ki_active']) && $input['style_group'] === '') {
-        wp_send_json_error(['message' => 'Bitte waehle einen Stil aus der Liste.']);
+    $validation_errors = beitragseinreichung_validate_submission_input($input);
+    if (!empty($validation_errors)) {
+        wp_send_json_error(['message' => implode(' ', $validation_errors)]);
     }
 
     $beitrag_ki_fehler = false;

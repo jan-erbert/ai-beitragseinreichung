@@ -10,8 +10,32 @@ defined('ABSPATH') || exit;
 function beitrag_get_ai_model_config()
 {
     return [
-        'default_model' => 'gpt-5.4-mini',
+        'default_model' => 'gpt-5.6-terra',
         'models' => [
+            'gpt-5.6-terra' => [
+                'label' => 'GPT-5.6 Terra',
+                'description' => 'Empfohlenes Standardmodell mit ausgewogenem Verhältnis aus Qualität und Kosten.',
+                'enabled' => true,
+                'reasoning_effort' => 'none',
+            ],
+            'gpt-5.6-luna' => [
+                'label' => 'GPT-5.6 Luna',
+                'description' => 'Sehr schnell und kostengünstig für einfache Beiträge und hohe Nutzungsmengen.',
+                'enabled' => true,
+                'reasoning_effort' => 'none',
+            ],
+            'gpt-5.6-sol' => [
+                'label' => 'GPT-5.6 Sol',
+                'description' => 'Hohe Qualität für anspruchsvolle und umfangreiche Textüberarbeitungen.',
+                'enabled' => true,
+                'reasoning_effort' => 'none',
+            ],
+            'gpt-6-astra' => [
+                'label' => 'GPT-6 Astra',
+                'description' => 'Neues Spitzenmodell für Ausnahmefälle; hohe Kosten und eingeschränkte Verfügbarkeit beachten.',
+                'enabled' => false,
+                'reasoning_effort' => 'low',
+            ],
             'gpt-5.4-nano' => [
                 'label' => 'GPT-5.4 nano',
                 'description' => 'Sehr schnell und günstig für einfache Optimierungen.',
@@ -20,7 +44,7 @@ function beitrag_get_ai_model_config()
             ],
             'gpt-5.4-mini' => [
                 'label' => 'GPT-5.4 mini',
-                'description' => 'Empfohlenes Standardmodell für gute Qualität bei moderaten Kosten.',
+                'description' => 'Bewährtes Modell für gute Qualität bei moderaten Kosten.',
                 'enabled' => true,
                 'reasoning_effort' => 'none',
             ],
@@ -32,7 +56,7 @@ function beitrag_get_ai_model_config()
             ],
             'gpt-5.5' => [
                 'label' => 'GPT-5.5',
-                'description' => 'Stärkstes Modell für sehr anspruchsvolle Beiträge; Kosten vor dauerhafter Nutzung beachten.',
+                'description' => 'Bewährtes Qualitätsmodell für anspruchsvolle Beiträge.',
                 'enabled' => true,
                 'reasoning_effort' => 'none',
             ],
@@ -41,24 +65,6 @@ function beitrag_get_ai_model_config()
                 'description' => 'Sehr leistungsstarke Pro-Variante für Ausnahmefälle; hohe Kosten und längere Laufzeit beachten.',
                 'enabled' => false,
                 'reasoning_effort' => 'high',
-            ],
-            'gpt-5.2' => [
-                'label' => 'GPT-5.2',
-                'description' => 'Vorheriges Frontier-Modell als stabile Reserve fuer Vergleichstests.',
-                'enabled' => false,
-                'reasoning_effort' => 'none',
-            ],
-            'gpt-5.2-pro' => [
-                'label' => 'GPT-5.2 pro',
-                'description' => 'Pro-Reserve für sehr anspruchsvolle Textprüfungen; nur bewusst freischalten.',
-                'enabled' => false,
-                'reasoning_effort' => 'high',
-            ],
-            'gpt-5' => [
-                'label' => 'GPT-5',
-                'description' => 'Aelteres GPT-5-Modell als Kompatibilitaets- und Vergleichsreserve.',
-                'enabled' => false,
-                'reasoning_effort' => 'none',
             ],
         ],
     ];

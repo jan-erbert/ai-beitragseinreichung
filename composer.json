@@ -3,11 +3,14 @@
   "description": "Development tooling for the AI Beitragseinreichung WordPress plugin.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
+  "require": {
+    "php": ">=7.4"
+  },
   "require-dev": {
     "dealerdirect/phpcodesniffer-composer-installer": "^1.1",
     "php-stubs/wordpress-stubs": "^7.0",
     "phpcompatibility/phpcompatibility-wp": "^2.1",
-    "wp-coding-standards/wpcs": "^3.2"
+    "wp-coding-standards/wpcs": "^3.4.1"
   },
   "config": {
     "allow-plugins": {
@@ -16,9 +19,34 @@
     "sort-packages": true
   },
   "scripts": {
+    "validate:composer": "@composer validate --strict --no-check-publish",
+    "audit:composer": "@composer audit --locked",
     "lint": "php -l wp-form.php && find includes -name '*.php' -print0 | xargs -0 -n1 php -l",
     "phpcs": "phpcs",
     "phpcbf": "phpcbf",
-    "test:formatting": "php tests/markdown-formatting-smoke.php"
+    "test:formatting": "php tests/markdown-formatting-smoke.php",
+    "test:models": "php tests/ai-models-smoke.php",
+    "test:response": "php tests/response-parser-smoke.php",
+    "test:tags": "php tests/tags-smoke.php",
+    "test:submission": "php tests/submission-validation-smoke.php",
+    "test:logging": "php tests/ai-logging-smoke.php",
+    "test:connection": "php tests/openai-connection-smoke.php",
+    "test": [
+      "@test:formatting",
+      "@test:models",
+      "@test:response",
+      "@test:tags",
+      "@test:submission",
+      "@test:logging",
+      "@test:connection"
+    ],
+    "check": [
+      "@validate:composer",
+      "@audit:composer",
+      "@lint",
+      "@phpcs",
+      "@test"
+    ],
+    "build:release": "bash scripts/build-release.sh"
   }
 }

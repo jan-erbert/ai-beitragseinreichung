@@ -79,6 +79,9 @@ Bei jeder Aenderung an Formularen, AJAX-Endpunkten oder gespeicherten Optionen p
 - `composer run lint` prueft PHP-Syntax.
 - `composer run phpcs` prueft projektlokal definierte PHPCS-Regeln.
 - `composer run phpcbf` darf fuer automatisch reparierbare PHPCS-Befunde genutzt werden, aber nicht als blinde Gesamtformatierung fuer das ganze historische Projekt.
+- `composer run test` fuehrt alle lokalen Entwicklungstests aus.
+- `composer run check` ist der gemeinsame Abschlusscheck fuer Composer, PHP-Syntax, PHPCS und Tests.
+- `composer run build:release` erstellt ein bereinigtes Plugin-ZIP unter `dist/`.
 - Das aktuelle `phpcs.xml.dist` ist bewusst auf Sicherheit, WordPress-relevante Checks und Kompatibilitaet fokussiert; reine Stilregeln werden nur schrittweise verschaerft.
 
 ---
@@ -104,9 +107,9 @@ Bei jeder Aenderung an Formularen, AJAX-Endpunkten oder gespeicherten Optionen p
 
 ## 8. Dokumentation und Versionierung
 
-- Bei relevanten Feature- oder Bugfix-Aenderungen `changelog.md` aktualisieren.
+- Bei relevanten Feature- oder Bugfix-Aenderungen `CHANGELOG.md` aktualisieren.
 - Plugin-Version in `wp-form.php` und Dokumentation konsistent halten, wenn eine Versionsaenderung Teil der Aufgabe ist.
-- `readme.md` nur aktualisieren, wenn sich Nutzerverhalten, Installation, Konfiguration oder Featureumfang aendern.
+- `README.md` nur aktualisieren, wenn sich Nutzerverhalten, Installation, Konfiguration oder Featureumfang aendern.
 - Keine rechtlichen, Datenschutz- oder Compliance-Aussagen ergaenzen, ohne dass sie fachlich belegt oder ausdruecklich gewuenscht sind.
 
 ---
@@ -133,8 +136,7 @@ Nach Aenderungen passend pruefen:
 ```bash
 git status
 git diff
-composer run lint
-composer run phpcs
+composer run check
 ```
 
 Wenn Composer-Abhaengigkeiten fehlen, zuerst ausfuehren:

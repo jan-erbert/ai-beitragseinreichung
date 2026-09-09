@@ -18,6 +18,15 @@ add_action('admin_init', function () {
         $beitrag_ki_fehler = false;
 
         $input = beitragseinreichung_get_submission_input($_POST);
+        $validation_errors = beitragseinreichung_validate_submission_input($input);
+        if (!empty($validation_errors)) {
+            wp_die(
+                esc_html(implode(' ', $validation_errors)),
+                esc_html__('Einreichung unvollständig', 'ai-beitragseinreichung'),
+                ['back_link' => true]
+            );
+        }
+
         $has_preview = !empty($_POST['beitrag_preview_ready']);
         $titel = sanitize_text_field(wp_unslash($_POST['beitrag_titel'] ?? ''));
         $inhalt = wp_kses_post(wp_unslash($_POST['beitrag_inhalt'] ?? ''));

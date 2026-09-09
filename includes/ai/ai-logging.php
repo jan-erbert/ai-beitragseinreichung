@@ -2,6 +2,31 @@
 
 defined('ABSPATH') || exit;
 
+/**
+ * Liefert die konfigurierte Obergrenze fuer KI-Protokolleintraege.
+ */
+function beitragseinreichung_get_ai_log_limit()
+{
+    $limit = (int) get_option('beitragseinreichung_ki_log_limit', 100);
+
+    return max(1, min(500, $limit));
+}
+
+/**
+ * Kuerzt das KI-Protokoll auf die festgelegte Obergrenze.
+ */
+function beitragseinreichung_trim_ai_logs($limit = null)
+{
+    $limit = $limit === null ? beitragseinreichung_get_ai_log_limit() : max(1, min(500, (int) $limit));
+    $logs = (array) get_option('beitragseinreichung_ki_logs', []);
+
+    if (count($logs) <= $limit) {
+        return;
+    }
+
+    update_option('beitragseinreichung_ki_logs', array_slice($logs, -$limit), false);
+}
+
 // 2. Nur Admins duerfen im Protokoll loeschen
 add_action('wp_ajax_beitragseinreichung_ki_log_loeschen', function () {
     if (!current_user_can('beitragseinreichung_admin')) {
@@ -14,7 +39,7 @@ add_action('wp_ajax_beitragseinreichung_ki_log_loeschen', function () {
 
     if ($index >= 0 && $index < count($logs)) {
         array_splice($logs, count($logs) - 1 - $index, 1);
-        update_option('beitragseinreichung_ki_logs', $logs);
+        update_option('beitragseinreichung_ki_logs', $logs, false);
         wp_send_json_success();
     }
 
@@ -41,7 +66,8 @@ function beitrag_ki_log_speichern($post_id, $autor_id, $original_titel, $optimie
         'stilgruppe' => $stilgruppe,
         'zusatz' => $zusatz,
     ];
-    update_option('beitragseinreichung_ki_logs', $logs);
+    $logs = array_slice($logs, -beitragseinreichung_get_ai_log_limit());
+    update_option('beitragseinreichung_ki_logs', $logs, false);
 }
 
 /**

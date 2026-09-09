@@ -325,12 +325,13 @@ add_action('admin_footer', function () {
                 const title = $('#beitrag_titel').val().trim();
                 const content = $('#beitrag_inhalt').val().trim();
                 const tags = $('#beitrag_tags').val().trim();
+                const category = $('#beitrag_kategorie').val();
 
                 const aiTagsEnabled = String($('#beitrag-tag-editor-wrap').data('ai-tags-enabled')) === '1';
                 const aiTagsActive = $('#beitrag_ki_individuell').is(':checked') && aiTagsEnabled && $('#beitrag_ki_tags_auto').is(':checked');
 
-                if (!title || !content || (!aiTagsActive && !tags)) {
-                    return 'Bitte fülle alle Pflichtfelder aus: Titel, Inhalt und Schlagwörter.';
+                if (!title || !content || (!aiTagsActive && !tags) || !category) {
+                    return 'Bitte fülle alle Pflichtfelder aus: Titel, Inhalt, Schlagwörter und Kategorie.';
                 }
 
                 return '';

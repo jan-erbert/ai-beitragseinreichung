@@ -30,11 +30,17 @@ add_action('admin_enqueue_scripts', function ($hook) {
         return;
     }
 
+    $lottie_path = dirname(__DIR__, 2) . '/assets/js/lottie-player.js';
+    $lottie_version = '2.0.1';
+    if (file_exists($lottie_path)) {
+        $lottie_version .= '-' . filemtime($lottie_path);
+    }
+
     wp_enqueue_script(
         'beitragseinreichung-lottie-player',
-        'https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js',
+        plugin_dir_url(dirname(__DIR__, 2) . '/wp-form.php') . 'assets/js/lottie-player.js',
         [],
-        null,
+        $lottie_version,
         true
     );
 });
@@ -45,7 +51,7 @@ add_action('admin_enqueue_scripts', function ($hook) {
     }
 
     $style_path = plugin_dir_path(dirname(__DIR__)) . 'css/style.css';
-    $style_version = defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.5';
+    $style_version = defined('BEITRAGSEINREICHUNG_VERSION') ? BEITRAGSEINREICHUNG_VERSION : '1.2.6';
     if (file_exists($style_path)) {
         $style_version .= '-' . filemtime($style_path);
     }

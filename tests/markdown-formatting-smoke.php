@@ -93,4 +93,17 @@ assert_contains('<!-- wp:table -->', $mixed_blocks, 'Markdown-Tabelle wurde nich
 assert_contains('<th>Name</th>', $mixed_blocks, 'Tabellenkopf fehlt.');
 assert_contains('<td><strong>44:56 min</strong></td>', $mixed_blocks, 'Inline-Formatierung in Tabelle fehlt.');
 
+$clean_title = beitrag_bereinige_titel_text('🏃 **Straßenlauf in Köln**');
+if ($clean_title !== '🏃 Straßenlauf in Köln') {
+    fwrite(STDERR, "Fehler: Titelbereinigung entfernt Markdown oder erhaelt Emojis und Umlaute nicht korrekt.\n");
+    exit(1);
+}
+
+$long_title = beitrag_bereinige_titel_text(str_repeat('Langer Titel ', 12), '', 40);
+$long_title_length = function_exists('mb_strlen') ? mb_strlen($long_title) : strlen($long_title);
+if ($long_title_length > 43 || substr($long_title, -3) !== '...') {
+    fwrite(STDERR, "Fehler: Lange Titel werden nicht verlaesslich begrenzt.\n");
+    exit(1);
+}
+
 echo "Markdown-Formatting-Smoke-Test erfolgreich.\n";

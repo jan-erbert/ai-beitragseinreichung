@@ -338,7 +338,6 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
     if (!$api_key || trim($api_key) === '') {
         $status['status'] = 'kein_key';
         $status['info'] = 'Kein API-Key hinterlegt.';
-        update_option('beitragseinreichung_ki_aktiv', 0); // KI deaktivieren
         update_option('beitragseinreichung_api_status', $status);
         return $status;
     }
@@ -357,7 +356,6 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
     if (is_wp_error($response)) {
         $status['status'] = 'netzwerkfehler';
         $status['info'] = $response->get_error_message();
-        update_option('beitragseinreichung_ki_aktiv', 0); // KI deaktivieren bei Fehler
     } else {
         $code = wp_remote_retrieve_response_code($response);
         $body = json_decode(wp_remote_retrieve_body($response), true);
@@ -370,7 +368,6 @@ function beitragseinreichung_test_openai_verbindung($api_key = null)
         } else {
             $status['status'] = 'fehler';
             $status['info'] = beitrag_openai_extract_error_message($body, 'Fehlercode: ' . $code);
-            update_option('beitragseinreichung_ki_aktiv', 0); // Deaktivieren bei Fehler
         }
     }
 

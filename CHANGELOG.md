@@ -1,5 +1,30 @@
 # Changelog – AI Beitragseinreichung
 
+## Version 1.2.6 – 2026-09-09
+
+**Added:**
+
+- Aktuelle OpenAI-Modelle `gpt-5.6-luna`, `gpt-5.6-terra` und `gpt-5.6-sol` zur Modellauswahl ergänzt.
+- `gpt-6-astra` als deaktivierte Option für spätere Tests hinterlegt; das Modell wird wegen seiner höheren Kosten und eingeschränkten Verfügbarkeit noch nicht zur Auswahl angeboten.
+- Einstellbare Obergrenze für das KI-Protokoll ergänzt; erlaubt sind 1 bis 500 Einträge, Standard sind 100.
+- Serverseitige Pflichtfeldprüfung für Vorschau und direkte Beitragseinreichung vereinheitlicht.
+- Entwicklungstests für Modellkonfiguration, strukturierte KI-Antworten, Schlagwörter, Einreichungsvalidierung und Protokollbegrenzung ergänzt.
+- GitHub-Actions-Workflow für PHP 7.4 und PHP 8.3 sowie monatliche Dependabot-Prüfungen ergänzt.
+- Reproduzierbaren Release-Bau über `composer run build:release` ergänzt.
+- Repositoryweite Regeln für Zeilenenden und Editorformatierung ergänzt.
+
+**Changed:**
+
+- `gpt-5.6-terra` als neues Standardmodell festgelegt. Ungültige oder nicht mehr konfigurierte gespeicherte Modellwerte fallen automatisch darauf zurück.
+- Alte, bereits deaktivierte Vergleichsreserven `gpt-5`, `gpt-5.2` und `gpt-5.2-pro` aus der Modellkonfiguration entfernt.
+- Projektdateien für Changelog, README und Lizenz auf die üblichen großgeschriebenen Dateinamen vereinheitlicht.
+- Der automatische API-Test nach dem Speichern bleibt erhalten, deaktiviert die KI bei Fehlern aber nicht mehr ungefragt. Admins können anschließend bewusst entscheiden.
+- Lottie-Player 2.0.1 lokal eingebunden und die bisherige unversionierte CDN-Abhängigkeit entfernt.
+- VS-Code-Einstellungen auf portable Projektpfade umgestellt.
+- PHPCS-, WPCS- und WordPress-Stubs aktualisiert; bekannte Sicherheitsprobleme der bisherigen Entwicklungswerkzeuge damit behoben.
+- KI-Protokolle werden als nicht automatisch geladene Option gespeichert, damit größere Protokolle normale Seitenaufrufe nicht belasten.
+- README, Lizenzhinweis und Wiki vollständig mit dem Funktionsumfang von Version 1.2.6 abgeglichen und überarbeitet.
+
 ## Version 1.2.5 – 2026-06-16
 
 **Fixed:**
