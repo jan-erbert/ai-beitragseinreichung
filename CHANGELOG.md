@@ -26,6 +26,10 @@
 - README, Lizenzhinweis und Wiki vollständig mit dem Funktionsumfang von Version 1.2.6 abgeglichen und überarbeitet.
 - Versionshinweis im Plugin inhaltlich auf das neue Standardmodell GPT-5.6 Terra, die Vorschau und die erweiterte WordPress-Formatierung ausgerichtet.
 
+**Fixed:**
+
+- KI-Verbindungsdialog in den Einstellungen respektiert wieder seinen ausgeblendeten Zustand und erscheint nur nach einem tatsächlich fehlgeschlagenen Test; Schließen und „KI aktiviert lassen“ funktionieren wieder.
+
 ## Version 1.2.5 – 2026-06-16
 
 **Fixed:**

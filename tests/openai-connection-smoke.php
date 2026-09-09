@@ -64,4 +64,10 @@ $network_status = beitragseinreichung_test_openai_verbindung();
 beitrag_test_assert_same('netzwerkfehler', $network_status['status'], 'Ein Netzwerkfehler wird nicht erkannt.');
 beitrag_test_assert_same(1, get_option('beitragseinreichung_ki_aktiv'), 'Ein Netzwerkfehler darf die KI nicht automatisch deaktivieren.');
 
+$dialog_css = file_get_contents(dirname(__DIR__) . '/css/style.css');
+beitrag_test_assert(
+    preg_match('/\.beitrag-dialog\[hidden\]\s*\{[^}]*display:\s*none\s*;/s', (string) $dialog_css) === 1,
+    'Ein ausgeblendeter KI-Verbindungsdialog darf nicht durch die allgemeine Dialog-CSS-Regel sichtbar bleiben.'
+);
+
 echo "OpenAI-Verbindungstest-Smoke-Test erfolgreich.\n";
