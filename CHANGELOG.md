@@ -25,6 +25,7 @@
 - KI-Protokolle werden als nicht automatisch geladene Option gespeichert, damit größere Protokolle normale Seitenaufrufe nicht belasten.
 - README, Lizenzhinweis und Wiki vollständig mit dem Funktionsumfang von Version 1.2.6 abgeglichen und überarbeitet.
 - Versionshinweis im Plugin inhaltlich auf das neue Standardmodell GPT-5.6 Terra, die Vorschau und die erweiterte WordPress-Formatierung ausgerichtet.
+- Einstellungsseite zeigt bei deaktivierter KI oben einen deutlichen Hinweis auf die nicht verfügbaren KI-Funktionen.
 
 **Fixed:**
 

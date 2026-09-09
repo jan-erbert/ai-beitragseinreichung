@@ -125,6 +125,11 @@ function beitragseinreichung_einstellungen_anzeige()
 ?>
     <div class="wrap">
         <h1>Beitragseinreichung – Einstellungen</h1>
+        <?php if (!$ki_einstellung_aktiv): ?>
+            <div class="notice notice-error inline">
+                <p><strong>Die KI-Unterstützung ist zurzeit deaktiviert.</strong> Aktiviere sie unter „KI aktivieren“, um die KI-Funktionen und KI-Schlagwortoptionen zu verwenden.</p>
+            </div>
+        <?php endif; ?>
         <?php if ($settings_notice !== ''): ?>
             <div class="notice notice-success is-dismissible"><p><?php echo esc_html($settings_notice); ?></p></div>
         <?php endif; ?>
