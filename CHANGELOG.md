@@ -24,6 +24,7 @@
 - PHPCS-, WPCS- und WordPress-Stubs aktualisiert; bekannte Sicherheitsprobleme der bisherigen Entwicklungswerkzeuge damit behoben.
 - KI-Protokolle werden als nicht automatisch geladene Option gespeichert, damit größere Protokolle normale Seitenaufrufe nicht belasten.
 - README, Lizenzhinweis und Wiki vollständig mit dem Funktionsumfang von Version 1.2.6 abgeglichen und überarbeitet.
+- Versionshinweis im Plugin inhaltlich auf das neue Standardmodell GPT-5.6 Terra, die Vorschau und die erweiterte WordPress-Formatierung ausgerichtet.
 
 ## Version 1.2.5 – 2026-06-16
 

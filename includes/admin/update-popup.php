@@ -119,31 +119,25 @@ add_action('admin_footer', function () {
                 </div>
                 <div>
                     <p class="beitrag-update-popup__eyebrow"><?php echo esc_html(sprintf('Release %s', $version)); ?></p>
-                    <h2 id="beitrag-update-popup-title"><?php echo esc_html__('Die Beitragseinreichung ist deutlich gewachsen', 'ai-beitragseinreichung'); ?></h2>
+                    <h2 id="beitrag-update-popup-title"><?php echo esc_html__('Neue KI-Modelle und mehr Zuverlässigkeit', 'ai-beitragseinreichung'); ?></h2>
                 </div>
             </div>
 
-            <p><?php echo esc_html__('Seit der letzten größeren Version ist das Einreichen, Prüfen und Überarbeiten von Beiträgen spürbar angenehmer geworden. Du kannst Inhalte jetzt besser vorbereiten, in Ruhe prüfen und gezielter mit der KI arbeiten.', 'ai-beitragseinreichung'); ?></p>
+            <p><?php echo esc_html__('Version 1.2.6 verbessert die KI-Unterstützung, die Vorschau und die Darstellung deiner Beiträge in WordPress.', 'ai-beitragseinreichung'); ?></p>
 
             <div class="beitrag-update-popup__highlights">
                 <div>
+                    <strong><?php echo esc_html__('Neues KI-Standardmodell', 'ai-beitragseinreichung'); ?></strong>
+                    <p><?php echo esc_html__('GPT-5.6 Terra ist das neue Standardmodell für eine ausgewogene und zuverlässige Textüberarbeitung.', 'ai-beitragseinreichung'); ?></p>
+                </div>
+                <div>
                     <strong><?php echo esc_html__('Vorschau vor dem Speichern', 'ai-beitragseinreichung'); ?></strong>
-                    <p><?php echo esc_html__('Beiträge können jetzt vor dem finalen Einreichen geprüft und mit einem konkreten Änderungswunsch erneut überarbeitet werden.', 'ai-beitragseinreichung'); ?></p>
+                    <p><?php echo esc_html__('Prüfe Titel, Text, Schlagwörter und Bilder vor dem Einreichen und lasse den Beitrag bei Bedarf gezielt überarbeiten.', 'ai-beitragseinreichung'); ?></p>
                 </div>
                 <div>
-                    <strong><?php echo esc_html__('Bessere KI-Unterstützung', 'ai-beitragseinreichung'); ?></strong>
-                    <p><?php echo esc_html__('Titel, Textauszug und Schlagwörter arbeiten nun besser zusammen. KI-Schlagwörter können automatisch vorgeschlagen oder pro Beitrag manuell gepflegt werden.', 'ai-beitragseinreichung'); ?></p>
+                    <strong><?php echo esc_html__('Bessere WordPress-Formatierung', 'ai-beitragseinreichung'); ?></strong>
+                    <p><?php echo esc_html__('Überschriften, Listen, Hervorhebungen und einfache Tabellen werden sauber für WordPress aufbereitet.', 'ai-beitragseinreichung'); ?></p>
                 </div>
-                <div>
-                    <strong><?php echo esc_html__('Schönere Bilder und Benachrichtigungen', 'ai-beitragseinreichung'); ?></strong>
-                    <p><?php echo esc_html__('Zusatzbilder werden sauberer dargestellt und E-Mails zeigen neue Einreichungen übersichtlicher als Vorschau.', 'ai-beitragseinreichung'); ?></p>
-                </div>
-                <?php if ($can_manage_settings) : ?>
-                    <div>
-                        <strong><?php echo esc_html__('Aufgeräumte Einstellungen', 'ai-beitragseinreichung'); ?></strong>
-                        <p><?php echo esc_html__('Modelle, Stilgruppen, Benachrichtigungen und Schlagwörter sind klarer organisiert und leichter zu pflegen.', 'ai-beitragseinreichung'); ?></p>
-                    </div>
-                <?php endif; ?>
             </div>
 
             <div class="beitrag-update-popup__actions">
